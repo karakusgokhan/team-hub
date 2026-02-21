@@ -264,13 +264,13 @@ export default function Calendar({ events, setEvents, currentUser, config }) {
       if (dayEvents.length === 0) return `*${label}:* No events`;
       const evts = dayEvents.map(e =>
         e.allDay
-          ? `  📅 (All day) ${e.title}${e.attendees ? ' (' + e.attendees + ')' : ''}`
-          : `  📅 ${e.time} — ${e.title}${e.attendees ? ' (' + e.attendees + ')' : ''}`
+          ? `  📅 [All day] ${e.title}${e.attendees ? ' (' + e.attendees + ')' : ''}`
+          : `  📅 ${e.time} - ${e.title}${e.attendees ? ' (' + e.attendees + ')' : ''}`
       ).join('\n');
       return `*${label}:*\n${evts}`;
     }).join('\n\n');
     const weekStr = new Date(getMonday(now)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `📅 *Team Schedule — Week of ${weekStr}*\n\n${lines}`;
+    return `📅 *Team Schedule - Week of ${weekStr}*\n\n${lines}`;
   };
 
   // ── Week view helpers ──────────────────────────────────────────────────────

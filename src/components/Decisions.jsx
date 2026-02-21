@@ -86,7 +86,7 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
   const buildWhatsAppText = () => {
     const lines = visible.map(d => {
       const icon = d.status === 'active' ? '✅' : d.status === 'revised' ? '🔄' : '❌';
-      return `${icon} [${d.category}] *${d.title}*\n   By ${d.decidedBy} · ${new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      return `${icon} [${d.category}] *${d.title}*\n   By ${d.decidedBy} | ${new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     }).join('\n\n');
     return `📋 *Decision Log*\n\n${lines}`;
   };

@@ -30,12 +30,12 @@ export default function CheckIn({ checkins, setCheckins, currentUser }) {
     const statusIcons = { office: '🏢', remote: '🏠', out: '🔴' };
     const lines = TEAM_MEMBERS.map(m => {
       const ci = todayCheckins.find(c => c.person === m.name);
-      if (!ci) return `⏳ ${m.name} — Not checked in`;
+      if (!ci) return `⏳ ${m.name} - Not checked in`;
       const label = ci.status === 'office' ? 'In Office' : ci.status === 'remote' ? 'Remote' : 'Out';
-      return `${statusIcons[ci.status]} ${m.name} — ${label}${ci.note ? ' (' + ci.note + ')' : ''}`;
+      return `${statusIcons[ci.status]} ${m.name} - ${label}${ci.note ? ' (' + ci.note + ')' : ''}`;
     }).join('\n');
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-    return `📍 *Team Status — ${dateStr}*\n\n${lines}`;
+    return `📍 *Team Status - ${dateStr}*\n\n${lines}`;
   };
 
   return (

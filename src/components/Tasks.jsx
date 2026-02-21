@@ -98,10 +98,10 @@ export default function Tasks({ tasks, setTasks, currentUser, config }) {
   const buildWhatsAppText = () => {
     const lines = filteredTasks.map(t => {
       const icon = t.status === 'done' ? '✅' : t.status === 'in-progress' ? '🔄' : t.status === 'blocked' ? '🚫' : '⬜';
-      const due = t.dueDate ? ` · Due ${formatDue(t.dueDate)}` : '';
-      return `${icon} *${t.title}*\n   → ${t.assignedTo}${due}`;
+      const due = t.dueDate ? ` | Due ${formatDue(t.dueDate)}` : '';
+      return `${icon} *${t.title}*\n   > ${t.assignedTo}${due}`;
     }).join('\n\n');
-    return `✅ *Task Tracker*\n\n${lines}`;
+    return `📋 *Task Tracker*\n\n${lines}`;
   };
 
   // Segment button style helper
