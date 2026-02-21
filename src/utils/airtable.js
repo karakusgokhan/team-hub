@@ -76,6 +76,8 @@ export async function airtableFetch(config, table, params = {}) {
 export async function airtableCreate(config, table, fields) {
   if (!config.apiKey || !config.baseId) return null;
 
+  console.log(`[Airtable] Creating record in ${table}:`, JSON.stringify(fields, null, 2));
+
   try {
     const res = await fetch(
       `${AIRTABLE_API}/${config.baseId}/${encodeURIComponent(table)}`,
@@ -90,11 +92,14 @@ export async function airtableCreate(config, table, fields) {
     );
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      console.error(`[Airtable] Create in ${table} failed (HTTP ${res.status}):`, JSON.stringify(err, null, 2));
       throw new Error(err?.error?.message || `Airtable create error: ${res.status}`);
     }
-    return await res.json();
+    const data = await res.json();
+    console.log(`[Airtable] Created record in ${table} — id: ${data.id}`);
+    return data;
   } catch (e) {
-    console.error(`[Airtable] Create in ${table} failed:`, e.message);
+    console.error(`[Airtable] Create in ${table} exception:`, e.message);
     return null;
   }
 }
@@ -104,6 +109,8 @@ export async function airtableCreate(config, table, fields) {
  */
 export async function airtableUpdate(config, table, recordId, fields) {
   if (!config.apiKey || !config.baseId) return null;
+
+  console.log(`[Airtable] Updating ${table} / ${recordId}:`, JSON.stringify(fields, null, 2));
 
   try {
     const res = await fetch(
@@ -119,11 +126,12 @@ export async function airtableUpdate(config, table, recordId, fields) {
     );
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      console.error(`[Airtable] Update in ${table} failed (HTTP ${res.status}):`, JSON.stringify(err, null, 2));
       throw new Error(err?.error?.message || `Airtable update error: ${res.status}`);
     }
     return await res.json();
   } catch (e) {
-    console.error(`[Airtable] Update in ${table} failed:`, e.message);
+    console.error(`[Airtable] Update in ${table} exception:`, e.message);
     return null;
   }
 }

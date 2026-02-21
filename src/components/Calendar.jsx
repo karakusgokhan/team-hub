@@ -212,15 +212,18 @@ export default function Calendar({ events, setEvents, currentUser, config }) {
       color:     formColor,
     };
 
+    // Build Airtable fields, omitting empty/invalid values so Airtable doesn't reject them.
+    // Date fields must be omitted (not set to '') when absent.
+    // Text fields must be omitted (not set to '') when absent.
     const airtableFields = {
-      Title:     eventData.title,
-      Date:      eventData.date,
-      EndDate:   eventData.endDate !== eventData.date ? eventData.endDate : '',
-      AllDay:    eventData.allDay,
-      StartTime: eventData.time,
-      Duration:  eventData.duration,
-      Attendees: eventData.attendees,
-      Color:     eventData.color,
+      Title: eventData.title,
+      Date:  eventData.date,
+      AllDay: eventData.allDay,
+      Color:  eventData.color,
+      ...(eventData.endDate && eventData.endDate !== eventData.date ? { EndDate: eventData.endDate } : {}),
+      ...(!eventData.allDay && eventData.time  ? { StartTime: eventData.time } : {}),
+      ...(!eventData.allDay && eventData.duration ? { Duration: eventData.duration } : {}),
+      ...(eventData.attendees ? { Attendees: eventData.attendees } : {}),
     };
 
     if (editingEvent) {
