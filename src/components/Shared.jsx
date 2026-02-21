@@ -66,6 +66,29 @@ export function WhatsAppButton({ text, label = 'Share to WhatsApp', compact = fa
   );
 }
 
+// ─── Category Badge ──────────────────────────────────────────────
+export function CategoryBadge({ category, colorMap }) {
+  const color = colorMap?.[category] || '#64748B';
+  return (
+    <span style={{
+      background: `${color}22`, color, border: `1px solid ${color}44`,
+      padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+      textTransform: 'capitalize', letterSpacing: '0.04em', whiteSpace: 'nowrap',
+    }}>{category}</span>
+  );
+}
+
+// ─── Pill Badge ───────────────────────────────────────────────────
+export function PillBadge({ label, bg, color }) {
+  return (
+    <span style={{
+      background: bg, color, padding: '3px 10px', borderRadius: 20,
+      fontSize: 11, fontWeight: 700, textTransform: 'capitalize',
+      letterSpacing: '0.04em', whiteSpace: 'nowrap',
+    }}>{label}</span>
+  );
+}
+
 // ─── WhatsApp Icon (used in button and inline) ───────────────────
 export function WhatsAppIcon({ size = 16, color = 'white' }) {
   return (

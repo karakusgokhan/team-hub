@@ -20,9 +20,11 @@ export const CHANNELS = ['general', 'marketing'];
  */
 export const AIRTABLE_TABLES = {
   teamMembers: 'TeamMembers',
-  checkIns: 'DailyCheckIns',
-  priorities: 'WeeklyPriorities',
-  messages: 'Messages',
+  checkIns:    'DailyCheckIns',
+  priorities:  'WeeklyPriorities',
+  messages:    'Messages',
+  decisions:   'Decisions',
+  tasks:       'Tasks',
 };
 
 /**
