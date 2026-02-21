@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TEAM_MEMBERS } from '../utils/config';
-import { getMonday } from '../utils/helpers';
-import { airtableCreate, airtableUpdate } from '../utils/airtable';
+import { getMonday, getSunday, offsetWeek } from '../utils/helpers';
+import { airtableCreate, airtableUpdate, airtableFetch } from '../utils/airtable';
 import { Avatar, PriorityStatus, WhatsAppButton } from './Shared';
 
 const STATUS_CYCLE = { todo: 'in-progress', 'in-progress': 'done', done: 'todo' };
@@ -10,13 +10,23 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
   const [showForm, setShowForm] = useState(false);
   const [newPriorityText, setNewPriorityText] = useState('');
   const [expanded, setExpanded] = useState({ [currentUser]: true });
+  // weekOffset: 0 = current week, -1 = last week, -2 = two weeks ago, etc.
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [loadingWeek, setLoadingWeek] = useState(false);
 
-  const currentWeek = getMonday(new Date());
-  const thisWeek = priorities.filter(p => p.week === currentWeek);
+  const thisMonday = getMonday(new Date());   // always the real current week
+  const viewedWeek = weekOffset === 0
+    ? thisMonday
+    : offsetWeek(thisMonday, weekOffset);
+  const viewedSunday = getSunday(viewedWeek);
+  const isCurrentWeek = weekOffset === 0;
+
+  // Priorities for the week being viewed
+  const weekPriorities = priorities.filter(p => p.week === viewedWeek);
 
   // Group by person, sorted by sortOrder
   const grouped = TEAM_MEMBERS.reduce((acc, m) => {
-    acc[m.name] = thisWeek
+    acc[m.name] = weekPriorities
       .filter(p => p.person === m.name)
       .sort((a, b) => a.sortOrder - b.sortOrder);
     return acc;
@@ -32,7 +42,58 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
     setExpanded(prev => ({ ...prev, [name]: !prev[name] }));
   };
 
+  // Load a past week's priorities from Airtable if not already in state
+  const loadWeekIfNeeded = async (targetMonday) => {
+    const alreadyLoaded = priorities.some(p => p.week === targetMonday);
+    if (alreadyLoaded || !config?.apiKey) return;
+
+    setLoadingWeek(true);
+    const data = await airtableFetch(config, 'WeeklyPriorities', {
+      filterByFormula: `{Week} = '${targetMonday}'`,
+      sort: JSON.stringify([
+        { field: 'Person',    direction: 'asc' },
+        { field: 'SortOrder', direction: 'asc' },
+      ]),
+    });
+    if (data?.records?.length > 0) {
+      const fetched = data.records.map(r => ({
+        id:        r.id,
+        person:    r.fields.Person,
+        week:      r.fields.Week,
+        priority:  r.fields.Priority,
+        status:    r.fields.Status || 'todo',
+        sortOrder: r.fields.SortOrder || 0,
+      }));
+      setPriorities(prev => {
+        const existing = prev.filter(p => p.week !== targetMonday);
+        return [...existing, ...fetched];
+      });
+    }
+    setLoadingWeek(false);
+  };
+
+  const goToPrevWeek = async () => {
+    const newOffset = weekOffset - 1;
+    const targetMonday = offsetWeek(thisMonday, newOffset);
+    setWeekOffset(newOffset);
+    setExpanded({ [currentUser]: true });
+    await loadWeekIfNeeded(targetMonday);
+  };
+
+  const goToNextWeek = () => {
+    if (weekOffset >= 0) return; // don't go into future
+    const newOffset = weekOffset + 1;
+    setWeekOffset(newOffset);
+    setExpanded({ [currentUser]: true });
+  };
+
+  const goToCurrentWeek = () => {
+    setWeekOffset(0);
+    setExpanded({ [currentUser]: true });
+  };
+
   const handleStatusClick = async (record) => {
+    if (!isCurrentWeek) return; // read-only for past weeks
     const next = STATUS_CYCLE[record.status];
     setPriorities(prev =>
       prev.map(p => p.id === record.id ? { ...p, status: next } : p)
@@ -43,6 +104,7 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
   };
 
   const handleMove = async (record, direction) => {
+    if (!isCurrentWeek) return;
     const items = grouped[record.person];
     const idx = items.findIndex(p => p.id === record.id);
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
@@ -65,14 +127,14 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
   };
 
   const handleAdd = async () => {
-    if (!newPriorityText.trim()) return;
+    if (!newPriorityText.trim() || !isCurrentWeek) return;
     const myItems = grouped[currentUser] || [];
     const nextOrder = myItems.length > 0 ? Math.max(...myItems.map(p => p.sortOrder)) + 1 : 1;
     const tempId = `p${Date.now()}`;
     const newRecord = {
       id: tempId,
       person: currentUser,
-      week: currentWeek,
+      week: viewedWeek,
       priority: newPriorityText.trim(),
       status: 'todo',
       sortOrder: nextOrder,
@@ -83,10 +145,10 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
 
     if (config?.apiKey) {
       const result = await airtableCreate(config, 'WeeklyPriorities', {
-        Person: currentUser,
-        Week: currentWeek,
-        Priority: newRecord.priority,
-        Status: 'todo',
+        Person:    currentUser,
+        Week:      viewedWeek,
+        Priority:  newRecord.priority,
+        Status:    'todo',
         SortOrder: nextOrder,
       });
       if (result?.id) {
@@ -97,14 +159,14 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
 
   const buildWhatsAppText = () => {
     const icons = { done: '✅', 'in-progress': '🔄', todo: '⬜' };
-    const weekStr = new Date(currentWeek).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const weekStr = new Date(viewedWeek + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const lines = TEAM_MEMBERS.map(m => {
       const items = grouped[m.name] || [];
       if (items.length === 0) return null;
       const itemLines = items.map(p => `  ${icons[p.status]} ${p.priority}`).join('\n');
       return `*${m.name}*\n${itemLines}`;
     }).filter(Boolean).join('\n\n');
-    return `🎯 *Weekly Priorities — Week of ${weekStr}*\n\n${lines}`;
+    return `🎯 *Weekly Priorities — Week of ${weekStr}*\n\n${lines || 'No priorities recorded.'}`;
   };
 
   const getProgress = (name) => {
@@ -114,30 +176,78 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
     return { done, total: items.length, pct: Math.round((done / items.length) * 100) };
   };
 
+  const fmtDate = (str) =>
+    new Date(str + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
   return (
     <div style={{ animation: 'slideIn 0.3s ease' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 'clamp(18px, 4vw, 22px)', fontWeight: 700, fontFamily: "'Space Mono', monospace" }}>
             Weekly Priorities
           </h2>
           <p style={{ margin: '4px 0 0', color: '#64748B', fontSize: 13 }}>
-            Week of {new Date(currentWeek).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            {fmtDate(viewedWeek)} — {fmtDate(viewedSunday)}
+            {isCurrentWeek && (
+              <span style={{
+                marginLeft: 8, fontSize: 10, background: 'rgba(16,185,129,0.15)',
+                color: '#6EE7B7', padding: '1px 7px', borderRadius: 8, fontWeight: 600,
+              }}>THIS WEEK</span>
+            )}
+            {!isCurrentWeek && (
+              <span style={{
+                marginLeft: 8, fontSize: 10, background: 'rgba(245,158,11,0.12)',
+                color: '#FCD34D', padding: '1px 7px', borderRadius: 8, fontWeight: 600,
+              }}>PAST WEEK</span>
+            )}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <WhatsAppButton compact label="Share" text={buildWhatsAppText()} />
-          <button onClick={() => setShowForm(v => !v)} style={{
-            background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
-            color: '#A5B4FC', padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-          }}>+ Add Priority</button>
+          {isCurrentWeek && (
+            <button onClick={() => setShowForm(v => !v)} style={{
+              background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
+              color: '#A5B4FC', padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
+              fontSize: 13, fontWeight: 600,
+            }}>+ Add Priority</button>
+          )}
         </div>
       </div>
 
-      {/* Add form */}
-      {showForm && (
+      {/* Week navigation */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20,
+        padding: '8px 12px', background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10,
+      }}>
+        <button onClick={goToPrevWeek} disabled={loadingWeek} style={{
+          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+          color: '#94A3B8', padding: '5px 12px', borderRadius: 7,
+          cursor: loadingWeek ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600,
+        }}>← Prev</button>
+
+        <div style={{ flex: 1, textAlign: 'center', fontSize: 12, color: '#64748B', fontFamily: "'Space Mono', monospace" }}>
+          {loadingWeek ? 'Loading…' : `${fmtDate(viewedWeek)} – ${fmtDate(viewedSunday)}`}
+        </div>
+
+        <button onClick={goToNextWeek} disabled={isCurrentWeek} style={{
+          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+          color: isCurrentWeek ? '#2D3748' : '#94A3B8', padding: '5px 12px', borderRadius: 7,
+          cursor: isCurrentWeek ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600,
+        }}>Next →</button>
+
+        {!isCurrentWeek && (
+          <button onClick={goToCurrentWeek} style={{
+            background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
+            color: '#A5B4FC', padding: '5px 12px', borderRadius: 7,
+            cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+          }}>↩ This week</button>
+        )}
+      </div>
+
+      {/* Add form — only for current week */}
+      {showForm && isCurrentWeek && (
         <div style={{
           background: 'rgba(99,102,241,0.06)', borderRadius: 16, padding: 20,
           marginBottom: 20, border: '1px solid rgba(99,102,241,0.15)', animation: 'slideIn 0.3s ease',
@@ -168,6 +278,17 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
         </div>
       )}
 
+      {/* Past-week read-only notice */}
+      {!isCurrentWeek && (
+        <div style={{
+          marginBottom: 16, padding: '8px 14px', borderRadius: 8,
+          background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)',
+          fontSize: 12, color: '#FCD34D',
+        }}>
+          📖 Viewing a past week — read only. Click "↩ This week" to return to the current week.
+        </div>
+      )}
+
       {/* Person sections */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {renderOrder.map(name => {
@@ -183,7 +304,7 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
               border: isMe ? '1px solid rgba(99,102,241,0.2)' : '1px solid rgba(255,255,255,0.06)',
               borderRadius: 14, overflow: 'hidden',
             }}>
-              {/* Section header — click to expand/collapse */}
+              {/* Section header */}
               <div
                 onClick={() => toggleExpand(name)}
                 style={{
@@ -231,9 +352,14 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
               {/* Priority items */}
               {isExpanded && (
                 <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {items.length === 0 && isMe && (
+                  {items.length === 0 && isMe && isCurrentWeek && (
                     <p style={{ color: '#475569', fontSize: 13, padding: '8px 4px', margin: 0, fontStyle: 'italic' }}>
                       No priorities yet — click "+ Add Priority" to get started.
+                    </p>
+                  )}
+                  {items.length === 0 && !isCurrentWeek && (
+                    <p style={{ color: '#334155', fontSize: 13, padding: '8px 4px', margin: 0, fontStyle: 'italic' }}>
+                      Nothing recorded this week.
                     </p>
                   )}
                   {items.map((item, idx) => (
@@ -242,20 +368,21 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
                       padding: '10px 12px', borderRadius: 10,
                       background: 'rgba(255,255,255,0.03)',
                       border: '1px solid rgba(255,255,255,0.05)',
+                      opacity: item.status === 'done' ? 0.7 : 1,
                     }}>
-                      {/* Clickable status dot */}
+                      {/* Clickable status dot — only interactive on current week + own section */}
                       <button
-                        onClick={() => isMe && handleStatusClick(item)}
-                        title={isMe ? 'Click to update status' : item.status}
+                        onClick={() => isMe && isCurrentWeek && handleStatusClick(item)}
+                        title={isMe && isCurrentWeek ? 'Click to update status' : item.status}
                         style={{
                           background: 'none', border: 'none', padding: 0,
-                          cursor: isMe ? 'pointer' : 'default', flexShrink: 0,
+                          cursor: isMe && isCurrentWeek ? 'pointer' : 'default', flexShrink: 0,
                         }}
                       >
                         <PriorityStatus status={item.status} />
                       </button>
 
-                      {/* Priority text */}
+                      {/* Priority text — strike through when done */}
                       <span style={{
                         flex: 1, fontSize: 14,
                         color: item.status === 'done' ? '#475569' : '#E2E8F0',
@@ -270,8 +397,8 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
                         {item.status.replace('-', ' ')}
                       </span>
 
-                      {/* Up/Down arrows — only for currentUser */}
-                      {isMe && (
+                      {/* Up/Down arrows — only for currentUser on current week */}
+                      {isMe && isCurrentWeek && (
                         <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                           <button
                             onClick={() => handleMove(item, 'up')}

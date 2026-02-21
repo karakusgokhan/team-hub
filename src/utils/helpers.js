@@ -18,6 +18,20 @@ export const getMonday = (d) => {
   return new Date(date.setDate(diff)).toISOString().split('T')[0];
 };
 
+// Returns the Sunday of the week that starts on the given Monday string
+export const getSunday = (mondayStr) => {
+  const d = new Date(mondayStr + 'T12:00:00');
+  d.setDate(d.getDate() + 6);
+  return d.toISOString().split('T')[0];
+};
+
+// Offset a Monday date string by N weeks (positive = future, negative = past)
+export const offsetWeek = (mondayStr, weeks) => {
+  const d = new Date(mondayStr + 'T12:00:00');
+  d.setDate(d.getDate() + weeks * 7);
+  return d.toISOString().split('T')[0];
+};
+
 export const timeAgo = (iso) => {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
   if (diff < 60) return 'just now';
