@@ -30,44 +30,7 @@ export const DEMO_PRIORITIES = [
 
 export const DEMO_MESSAGES = [];
 
-export const DEMO_DECISIONS = [
-  {
-    id: 'd1',
-    title: 'Move to weekly all-hands format',
-    description: 'Replace bi-weekly all-hands with weekly 30-minute standups to improve alignment. Trial period: Q1.',
-    decidedBy: 'Esra',
-    date: '2026-02-17',
-    category: 'operations',
-    status: 'active',
-  },
-  {
-    id: 'd2',
-    title: 'Launch Instagram content series in March',
-    description: 'Approved 8-week branded content series focused on local community stories. Budget: 5,000 TL.',
-    decidedBy: 'Leyla',
-    date: '2026-02-14',
-    category: 'marketing',
-    status: 'active',
-  },
-  {
-    id: 'd3',
-    title: 'Adopt TeamHub for internal communications',
-    description: 'Migrate from WhatsApp group updates to TeamHub for check-ins and priorities tracking.',
-    decidedBy: 'Gökhan',
-    date: '2026-02-10',
-    category: 'product',
-    status: 'active',
-  },
-  {
-    id: 'd4',
-    title: 'Pause LinkedIn advertising',
-    description: 'Q4 LinkedIn ads underperformed vs. organic. Reallocating budget to Instagram.',
-    decidedBy: 'Leyla',
-    date: '2026-01-28',
-    category: 'marketing',
-    status: 'reversed',
-  },
-];
+export const DEMO_DECISIONS = [];
 
 export const DEMO_TASKS = [
   {

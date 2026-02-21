@@ -224,9 +224,14 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
 
       {/* Decision list */}
       {visible.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px 24px', color: '#475569' }}>
+        <div style={{ textAlign: 'center', padding: '48px 24px', color: '#475569', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: 12 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
-          <p style={{ margin: 0, fontSize: 14 }}>{searchQuery ? 'No decisions match your search.' : 'No decisions recorded yet.'}</p>
+          <div style={{ fontWeight: 600, color: '#475569', marginBottom: 6 }}>
+            {searchQuery ? 'No decisions match your search.' : 'No decisions yet'}
+          </div>
+          <div style={{ fontSize: 13 }}>
+            {searchQuery ? 'Try a different keyword or clear the search.' : 'Add your first one using the button above.'}
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
