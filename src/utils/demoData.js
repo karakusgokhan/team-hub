@@ -28,13 +28,7 @@ export const DEMO_PRIORITIES = [
   { id: 'p16', person: 'Gökhan', week: getMonday(new Date()), priority: 'Performance review cycle',        status: 'todo',        sortOrder: 3 },
 ];
 
-export const DEMO_MESSAGES = [
-  { id: 'm1', person: 'Esra', text: 'Great work on the partnership announcement everyone! Let\'s keep the momentum going this week. 🎉', time: new Date(Date.now() - 3600000 * 2).toISOString(), channel: 'general', pinned: true },
-  { id: 'm2', person: 'Leyla', text: 'Campaign assets are ready for review in the shared drive. Please take a look before Wednesday.', time: new Date(Date.now() - 3600000 * 5).toISOString(), channel: 'marketing', pinned: false },
-  { id: 'm3', person: 'Pınar', text: 'New CRM integration is live on staging. Please test your workflows and flag any issues.', time: new Date(Date.now() - 3600000 * 8).toISOString(), channel: 'general', pinned: false },
-  { id: 'm4', person: 'Gökhan', text: 'Reminder: Timesheets due by Friday 5pm.', time: new Date(Date.now() - 3600000 * 24).toISOString(), channel: 'general', pinned: true },
-  { id: 'm5', person: 'Seda', text: 'Local partner meeting went well — notes shared in the drive. Leyla, can we sync on the press angle?', time: new Date(Date.now() - 3600000 * 26).toISOString(), channel: 'marketing', pinned: false },
-];
+export const DEMO_MESSAGES = [];
 
 export const DEMO_DECISIONS = [
   {
@@ -144,23 +138,4 @@ export const DEMO_TASKS = [
   },
 ];
 
-// Calendar events — use real date strings + day index derived from date
-// day: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
-function weekDateStr(dayOffset) {
-  // dayOffset: 0=Mon of this week, 1=Tue, …, 4=Fri
-  const monday = new Date(getMonday(new Date()) + 'T12:00:00');
-  const d = new Date(monday);
-  d.setDate(monday.getDate() + dayOffset);
-  return d.toISOString().split('T')[0];
-}
-
-export const DEMO_CALENDAR = [
-  { id: 'e1', title: 'All Hands',              time: '10:00', duration: 60,  day: 1, date: weekDateStr(0), color: '#D4634B', attendees: 'Everyone' },
-  { id: 'e2', title: 'Marketing Sync',          time: '14:00', duration: 45,  day: 1, date: weekDateStr(0), color: '#8B5CF6', attendees: 'Leyla, Seda, Esra' },
-  { id: 'e3', title: 'Digital Platform Review', time: '11:00', duration: 60,  day: 2, date: weekDateStr(1), color: '#10B981', attendees: 'Pınar, Gökhan' },
-  { id: 'e4', title: '1:1 Esra ↔ Leyla',       time: '15:00', duration: 30,  day: 3, date: weekDateStr(2), color: '#D4634B', attendees: 'Esra, Leyla' },
-  { id: 'e5', title: 'Campaign Review',         time: '10:00', duration: 45,  day: 3, date: weekDateStr(2), color: '#8B5CF6', attendees: 'Leyla, Pınar, Seda' },
-  { id: 'e6', title: 'Local Ops Planning',      time: '09:00', duration: 60,  day: 4, date: weekDateStr(3), color: '#F59E0B', attendees: 'Seda, Esra' },
-  { id: 'e7', title: 'Team Lunch',              time: '12:30', duration: 60,  day: 5, date: weekDateStr(4), color: '#EC4899', attendees: 'Everyone' },
-  { id: 'e8', title: 'Content Calendar Review', time: '16:00', duration: 30,  day: 5, date: weekDateStr(4), color: '#8B5CF6', attendees: 'Leyla, Gökhan' },
-];
+export const DEMO_CALENDAR = [];

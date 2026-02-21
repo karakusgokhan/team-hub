@@ -95,6 +95,17 @@ export default function MessageBoard({ messages, setMessages, currentUser }) {
 
       {/* Messages */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {regularMessages.length === 0 && (
+          <div style={{
+            textAlign: 'center', padding: '48px 24px',
+            color: '#334155', fontSize: 14,
+            border: '1px dashed rgba(255,255,255,0.06)', borderRadius: 12,
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>💬</div>
+            <div style={{ fontWeight: 600, color: '#475569', marginBottom: 6 }}>No messages yet</div>
+            <div style={{ fontSize: 13 }}>Be the first to post in #{channel}</div>
+          </div>
+        )}
         {regularMessages.map(m => (
           <div key={m.id} style={{
             display: 'flex', gap: 12, padding: '12px 16px',
