@@ -228,8 +228,22 @@ export default function App() {
             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
             background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
-          }}>⚡</div>
+            boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
+          }}>
+            {/* Nautilus / golden-ratio spiral */}
+            <svg width="22" height="22" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Outermost arc: r=38, top-center → left-center (270° sweep) */}
+              <path d="M50,12 A38,38 0 1,1 12,50" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
+              {/* Second arc: r=24, left-center → bottom-center (180° sweep) */}
+              <path d="M12,50 A24,24 0 0,0 50,74" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
+              {/* Third arc: r=14, bottom-center → right-mid (180° sweep) */}
+              <path d="M50,74 A14,14 0 0,0 64,60" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
+              {/* Fourth arc: r=8, right-mid → top-mid (180° sweep) */}
+              <path d="M64,60 A8,8 0 0,0 56,52" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
+              {/* Innermost dot */}
+              <circle cx="50" cy="52" r="3" fill="white"/>
+            </svg>
+          </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{
               margin: 0, fontSize: 'clamp(15px, 3vw, 20px)', fontWeight: 700, letterSpacing: '-0.02em',
