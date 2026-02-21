@@ -180,20 +180,37 @@ export default function App() {
       });
       if (eventsData?.records?.length > 0) {
         const mapped = eventsData.records.map(r => {
-          const dateStr = r.fields.Date || '';
+          const dateStr  = r.fields.Date    || '';
+          const endDate  = r.fields.EndDate || dateStr;
+          const allDay   = r.fields.AllDay  || false;
           const dow = dateStr ? new Date(dateStr + 'T12:00:00').getDay() : 0;
           const day = (dow === 0 || dow === 6) ? null : dow;
           return {
             id:        r.id,
             title:     r.fields.Title || '',
             date:      dateStr,
+            endDate:   endDate,
             day:       day,
-            time:      r.fields.StartTime || '09:00',
-            duration:  r.fields.Duration || 60,
+            allDay:    allDay,
+            time:      allDay ? '' : (r.fields.StartTime || '09:00'),
+            duration:  allDay ? 0  : (r.fields.Duration  || 60),
             attendees: r.fields.Attendees || '',
-            color:     r.fields.Color || '#6366F1',
+            color:     r.fields.Color     || '#6366F1',
           };
-        }).filter(e => e.day !== null);
+        // Keep events that cover at least one weekday (Mon-Fri)
+        }).filter(e => {
+          if (e.day !== null) return true;
+          // multi-day starting on weekend — check if it spans into a weekday
+          const end = e.endDate || e.date;
+          if (!e.date || !end) return false;
+          const s = new Date(e.date + 'T12:00:00');
+          const f = new Date(end  + 'T12:00:00');
+          for (let d = new Date(s); d <= f; d.setDate(d.getDate() + 1)) {
+            const dow = d.getDay();
+            if (dow >= 1 && dow <= 5) return true;
+          }
+          return false;
+        });
         setCalendarEvents(mapped);
       }
     };
