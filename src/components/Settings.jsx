@@ -82,7 +82,7 @@ export default function Settings({ config, setConfig, onClose }) {
         }}>
           <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#A5B4FC', marginBottom: 8 }}>📋 Airtable Setup Guide</p>
           <p style={{ margin: 0, fontSize: 12, color: '#94A3B8', lineHeight: 1.7 }}>
-            1. Create a base called <strong style={{ color: '#C7D2FE' }}>TeamHub</strong> in Airtable<br />
+            1. Create a base called <strong style={{ color: '#C7D2FE' }}>HarmonyHub</strong> in Airtable<br />
             2. Create these tables with the listed fields:<br /><br />
             <strong style={{ color: '#C7D2FE' }}>TeamMembers</strong> — Name, Role, Color, Avatar<br />
             <strong style={{ color: '#C7D2FE' }}>DailyCheckIns</strong> — Person, Status, Note, Date, Time<br />

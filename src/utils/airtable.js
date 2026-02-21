@@ -1,14 +1,14 @@
 /**
- * Airtable API utility for TeamHub
- * 
+ * Airtable API utility for HarmonyHub
+ *
  * SETUP INSTRUCTIONS:
- * 1. Go to https://airtable.com and create a new base called "TeamHub"
+ * 1. Go to https://airtable.com and create a new base called "HarmonyHub"
  * 2. Create the tables listed in TABLES below with the specified fields
  * 3. Go to https://airtable.com/create/tokens and create a Personal Access Token
  *    - Scopes: data.records:read, data.records:write
- *    - Access: Your TeamHub base
+ *    - Access: Your HarmonyHub base
  * 4. Copy your Base ID from the Airtable URL: https://airtable.com/BASE_ID/...
- * 5. Enter both in the TeamHub Settings panel
+ * 5. Enter both in the HarmonyHub Settings panel
  * 
  * TABLE SCHEMAS:
  * 
@@ -174,7 +174,7 @@ export async function testConnection(config) {
     if (res.ok) return { ok: true };
     if (res.status === 401) return { ok: false, error: 'Invalid API key' };
     if (res.status === 404) return { ok: false, error: 'Base not found — check your Base ID' };
-    if (res.status === 422) return { ok: false, error: 'TeamMembers table not found — please create it in Airtable' };
+    if (res.status === 422) return { ok: false, error: 'TeamMembers table not found - please create it in Airtable' };
     return { ok: false, error: `Unexpected error: ${res.status}` };
   } catch (e) {
     return { ok: false, error: 'Network error — check your connection' };

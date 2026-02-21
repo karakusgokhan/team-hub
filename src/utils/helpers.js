@@ -1,5 +1,5 @@
 /**
- * Date and formatting helpers for TeamHub
+ * Date and formatting helpers for HarmonyHub
  */
 
 export const todayStr = () => new Date().toISOString().split('T')[0];

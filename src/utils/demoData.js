@@ -1,5 +1,5 @@
 /**
- * Demo data for TeamHub
+ * Demo data for HarmonyHub
  * Used when Airtable is not connected.
  * Once Airtable is set up, this file is ignored.
  */
@@ -23,7 +23,7 @@ export const DEMO_PRIORITIES = [
   { id: 'p11', person: 'Esra',   week: getMonday(new Date()), priority: 'Investor update',                status: 'done',        sortOrder: 1 },
   { id: 'p12', person: 'Esra',   week: getMonday(new Date()), priority: 'Hiring plan review',              status: 'in-progress', sortOrder: 2 },
   { id: 'p13', person: 'Esra',   week: getMonday(new Date()), priority: 'Team retreat follow-up',          status: 'todo',        sortOrder: 3 },
-  { id: 'p14', person: 'Gökhan', week: getMonday(new Date()), priority: 'TeamHub deployment',              status: 'in-progress', sortOrder: 1 },
+  { id: 'p14', person: 'Gökhan', week: getMonday(new Date()), priority: 'HarmonyHub deployment',           status: 'in-progress', sortOrder: 1 },
   { id: 'p15', person: 'Gökhan', week: getMonday(new Date()), priority: 'Q1 budget review',                status: 'done',        sortOrder: 2 },
   { id: 'p16', person: 'Gökhan', week: getMonday(new Date()), priority: 'Performance review cycle',        status: 'todo',        sortOrder: 3 },
 ];
@@ -46,7 +46,7 @@ export const DEMO_TASKS = [
   },
   {
     id: 't2',
-    title: 'Deploy TeamHub to production',
+    title: 'Deploy HarmonyHub to production',
     description: 'Final deploy with all new features enabled and Airtable connected.',
     assignedTo: 'Gökhan',
     createdBy: 'Gökhan',
