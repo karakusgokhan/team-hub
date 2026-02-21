@@ -9,6 +9,7 @@ import Priorities from './components/Priorities';
 import MessageBoard from './components/MessageBoard';
 import Calendar from './components/Calendar';
 import Settings from './components/Settings';
+import UserSelector from './components/UserSelector';
 
 const TABS = [
   { id: 'checkin', label: 'Check-in', icon: '📍' },
@@ -20,7 +21,6 @@ const TABS = [
 export default function App() {
   const [activeTab, setActiveTab] = useState('checkin');
   const [config, setConfig] = useState(() => {
-    // Try to load saved config from localStorage
     try {
       const saved = localStorage.getItem('teamhub_config');
       return saved ? JSON.parse(saved) : DEFAULT_AIRTABLE_CONFIG;
@@ -29,7 +29,15 @@ export default function App() {
     }
   });
   const [showSettings, setShowSettings] = useState(false);
-  const [currentUser] = useState('Gökhan'); // TODO: add login
+
+  // Current user — persisted in localStorage, null means not selected yet
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      return localStorage.getItem('teamhub_user') || null;
+    } catch {
+      return null;
+    }
+  });
 
   // Data state — starts with demo data, replaced by Airtable when connected
   const [checkins, setCheckins] = useState(DEMO_CHECKINS);
@@ -45,6 +53,22 @@ export default function App() {
     } catch { /* ignore */ }
   }, [config]);
 
+  // Handle user selection
+  const handleSelectUser = (name) => {
+    try {
+      localStorage.setItem('teamhub_user', name);
+    } catch { /* ignore */ }
+    setCurrentUser(name);
+  };
+
+  // Switch user
+  const handleSwitchUser = () => {
+    try {
+      localStorage.removeItem('teamhub_user');
+    } catch { /* ignore */ }
+    setCurrentUser(null);
+  };
+
   // Load data from Airtable when config changes
   useEffect(() => {
     if (!config.apiKey || !config.baseId) {
@@ -53,7 +77,6 @@ export default function App() {
     }
 
     const loadData = async () => {
-      // Test with a simple fetch
       const teamData = await airtableFetch(config, 'TeamMembers', { maxRecords: 1 });
       if (!teamData) {
         setIsConnected(false);
@@ -96,32 +119,40 @@ export default function App() {
     loadData();
   }, [config]);
 
+  // Show user selector if no user chosen yet
+  if (!currentUser) {
+    return <UserSelector onSelect={handleSelectUser} />;
+  }
+
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
   const userCheckedIn = checkins.find(c => c.person === currentUser && c.date === todayStr());
+  const currentMember = TEAM_MEMBERS.find(m => m.name === currentUser);
 
   return (
     <div>
       {/* Header */}
       <header style={{
-        padding: '20px 32px',
+        padding: 'clamp(12px, 3vw, 20px) clamp(16px, 4vw, 32px)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         background: 'rgba(15,17,23,0.8)', backdropFilter: 'blur(20px)',
         position: 'sticky', top: 0, zIndex: 100,
+        gap: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        {/* Left: Logo + greeting */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           <div style={{
-            width: 40, height: 40, borderRadius: 12,
+            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
             background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 20, boxShadow: '0 4px 16px rgba(99,102,241,0.3)'
+            fontSize: 18, boxShadow: '0 4px 16px rgba(99,102,241,0.3)'
           }}>⚡</div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <h1 style={{
-              margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em',
+              margin: 0, fontSize: 'clamp(15px, 3vw, 20px)', fontWeight: 700, letterSpacing: '-0.02em',
               fontFamily: "'Space Mono', monospace", color: '#F8FAFC',
-              display: 'flex', alignItems: 'center', gap: 8
+              display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap'
             }}>
               TeamHub
               {isConnected && (
@@ -137,28 +168,56 @@ export default function App() {
                 }}>DEMO</span>
               )}
             </h1>
-            <p style={{ margin: 0, fontSize: 11, color: '#64748B', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <p style={{
+              margin: 0, fontSize: 'clamp(10px, 2vw, 11px)', color: '#64748B',
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+            }}>
               {greeting}, {currentUser}
             </p>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+
+        {/* Right: actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           {!userCheckedIn && (
             <button onClick={() => setActiveTab('checkin')} style={{
               background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', border: 'none',
-              color: '#fff', padding: '8px 16px', borderRadius: 8, fontSize: 13,
-              fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              color: '#fff', padding: 'clamp(6px, 2vw, 8px) clamp(10px, 3vw, 16px)',
+              borderRadius: 8, fontSize: 'clamp(11px, 2vw, 13px)',
+              fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
               boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
-              animation: 'pulse 2s infinite'
+              animation: 'pulse 2s infinite', whiteSpace: 'nowrap'
             }}>
-              <span>📍</span> Check In
+              <span>📍</span>
+              <span style={{ display: 'none' }} className="btn-label-full">Check In</span>
+              <span>Check In</span>
             </button>
           )}
+
+          {/* User avatar / switch */}
+          <button
+            onClick={handleSwitchUser}
+            title="Switch user"
+            style={{
+              width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+              background: currentMember?.color || '#6366F1',
+              border: 'none', color: '#fff', fontWeight: 700, fontSize: 14,
+              cursor: 'pointer', fontFamily: "'Space Mono', monospace",
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 2px 8px rgba(0,0,0,0.3)`,
+            }}
+          >
+            {currentMember?.avatar || currentUser[0]}
+          </button>
+
           <button onClick={() => setShowSettings(!showSettings)} style={{
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-            color: '#94A3B8', padding: '8px 12px', borderRadius: 8, fontSize: 13,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6
-          }}>⚙ Settings</button>
+            color: '#94A3B8', padding: 'clamp(6px, 2vw, 8px) clamp(8px, 2vw, 12px)',
+            borderRadius: 8, fontSize: 'clamp(12px, 2vw, 13px)',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+            whiteSpace: 'nowrap'
+          }}>⚙ <span style={{ display: window.innerWidth > 480 ? 'inline' : 'none' }}>Settings</span></button>
         </div>
       </header>
 
@@ -169,35 +228,43 @@ export default function App() {
 
       {/* Tab Navigation */}
       <nav style={{
-        display: 'flex', gap: 4, padding: '16px 32px 0',
-        borderBottom: '1px solid rgba(255,255,255,0.06)'
+        display: 'flex', gap: 2, padding: 'clamp(12px, 3vw, 16px) clamp(16px, 4vw, 32px) 0',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none', msOverflowStyle: 'none',
       }}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-            padding: '10px 20px',
+            padding: 'clamp(8px, 2vw, 10px) clamp(10px, 3vw, 20px)',
             background: activeTab === tab.id ? 'rgba(99,102,241,0.15)' : 'transparent',
             border: 'none',
             borderBottom: activeTab === tab.id ? '2px solid #6366F1' : '2px solid transparent',
             color: activeTab === tab.id ? '#A5B4FC' : '#64748B',
-            fontSize: 14, fontWeight: 600, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8,
-            borderRadius: '8px 8px 0 0', transition: 'all 0.2s'
+            fontSize: 'clamp(12px, 2.5vw, 14px)', fontWeight: 600, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+            borderRadius: '8px 8px 0 0', transition: 'all 0.2s',
+            whiteSpace: 'nowrap', flexShrink: 0,
+            WebkitTapHighlightColor: 'transparent',
           }}>
-            <span style={{ fontSize: 16 }}>{tab.icon}</span> {tab.label}
+            <span style={{ fontSize: 'clamp(14px, 3vw, 16px)' }}>{tab.icon}</span>
+            {tab.label}
           </button>
         ))}
       </nav>
 
       {/* Content */}
-      <main style={{ padding: '24px 32px', maxWidth: 1100, margin: '0 auto' }}>
+      <main style={{
+        padding: 'clamp(16px, 4vw, 24px) clamp(16px, 4vw, 32px)',
+        maxWidth: 1100, margin: '0 auto'
+      }}>
         {activeTab === 'checkin' && (
-          <CheckIn checkins={checkins} setCheckins={setCheckins} currentUser={currentUser} />
+          <CheckIn checkins={checkins} setCheckins={setCheckins} currentUser={currentUser} config={config} />
         )}
         {activeTab === 'priorities' && (
           <Priorities priorities={priorities} />
         )}
         {activeTab === 'board' && (
-          <MessageBoard messages={messages} setMessages={setMessages} currentUser={currentUser} />
+          <MessageBoard messages={messages} setMessages={setMessages} currentUser={currentUser} config={config} />
         )}
         {activeTab === 'calendar' && (
           <Calendar events={calendarEvents} />
@@ -206,7 +273,8 @@ export default function App() {
 
       {/* Footer */}
       <footer style={{
-        padding: '16px 32px', borderTop: '1px solid rgba(255,255,255,0.04)',
+        padding: 'clamp(12px, 3vw, 16px) clamp(16px, 4vw, 32px)',
+        borderTop: '1px solid rgba(255,255,255,0.04)',
         textAlign: 'center', fontSize: 11, color: '#334155', marginTop: 40
       }}>
         TeamHub · Powered by Airtable · Built with Claude
