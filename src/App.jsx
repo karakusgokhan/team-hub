@@ -50,7 +50,7 @@ export default function App() {
   const [checkins, setCheckins]     = useState(DEMO_CHECKINS);
   const [priorities, setPriorities] = useState(DEMO_PRIORITIES);
   const [messages, setMessages]     = useState(DEMO_MESSAGES);
-  const [calendarEvents]            = useState(DEMO_CALENDAR);
+  const [calendarEvents, setCalendarEvents] = useState(DEMO_CALENDAR);
   const [decisions, setDecisions]   = useState(DEMO_DECISIONS);
   const [tasks, setTasks]           = useState(DEMO_TASKS);
   const [isConnected, setIsConnected] = useState(false);
@@ -171,6 +171,30 @@ export default function App() {
           status:      r.fields.Status || 'todo',
           createdAt:   r.fields.CreatedAt || r.createdTime,
         })));
+      }
+
+      // Load calendar events
+      const eventsData = await airtableFetch(config, 'Events', {
+        sort: JSON.stringify([{ field: 'Date', direction: 'asc' }]),
+        maxRecords: 200,
+      });
+      if (eventsData?.records?.length > 0) {
+        const mapped = eventsData.records.map(r => {
+          const dateStr = r.fields.Date || '';
+          const dow = dateStr ? new Date(dateStr + 'T12:00:00').getDay() : 0;
+          const day = (dow === 0 || dow === 6) ? null : dow;
+          return {
+            id:        r.id,
+            title:     r.fields.Title || '',
+            date:      dateStr,
+            day:       day,
+            time:      r.fields.StartTime || '09:00',
+            duration:  r.fields.Duration || 60,
+            attendees: r.fields.Attendees || '',
+            color:     r.fields.Color || '#6366F1',
+          };
+        }).filter(e => e.day !== null);
+        setCalendarEvents(mapped);
       }
     };
 
@@ -332,7 +356,7 @@ export default function App() {
           <Tasks tasks={tasks} setTasks={setTasks} currentUser={currentUser} config={config} />
         )}
         {activeTab === 'calendar' && (
-          <Calendar events={calendarEvents} />
+          <Calendar events={calendarEvents} setEvents={setCalendarEvents} currentUser={currentUser} config={config} />
         )}
       </main>
 
