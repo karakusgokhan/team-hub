@@ -17,9 +17,18 @@ export default function UserSelector({ onSelect }) {
         width: 64, height: 64, borderRadius: 20,
         background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 32, marginBottom: 20,
+        marginBottom: 20,
         boxShadow: '0 8px 32px rgba(99,102,241,0.4)',
-      }}>⚡</div>
+      }}>
+        {/* Nautilus / golden-ratio spiral */}
+        <svg width="38" height="38" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M50,12 A38,38 0 1,1 12,50" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
+          <path d="M12,50 A24,24 0 0,0 50,74" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
+          <path d="M50,74 A14,14 0 0,0 64,60" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
+          <path d="M64,60 A8,8 0 0,0 56,52" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
+          <circle cx="50" cy="52" r="3" fill="white"/>
+        </svg>
+      </div>
 
       <h1 style={{
         margin: '0 0 8px',
@@ -28,7 +37,7 @@ export default function UserSelector({ onSelect }) {
         fontFamily: "'Space Mono', monospace",
         color: '#F8FAFC',
         textAlign: 'center',
-      }}>Welcome to TeamHub</h1>
+      }}>Welcome to HarmonyHub</h1>
 
       <p style={{
         margin: '0 0 40px',
