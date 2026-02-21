@@ -6,13 +6,7 @@
 
 import { todayStr, getMonday } from './helpers';
 
-export const DEMO_CHECKINS = [
-  { id: 'c1', person: 'Esra', status: 'office', note: 'Strategy session at 2pm', date: todayStr(), time: '08:45' },
-  { id: 'c2', person: 'Gökhan', status: 'office', note: '', date: todayStr(), time: '09:02' },
-  { id: 'c3', person: 'Leyla', status: 'remote', note: 'Available all day, campaign deadline', date: todayStr(), time: '09:15' },
-  { id: 'c4', person: 'Pınar', status: 'office', note: 'Platform demo at 11am', date: todayStr(), time: '08:30' },
-  { id: 'c5', person: 'Seda', status: 'remote', note: 'Field visits in the afternoon', date: todayStr(), time: '09:30' },
-];
+export const DEMO_CHECKINS = [];
 
 // Flat format — one record per priority item
 export const DEMO_PRIORITIES = [
@@ -150,13 +144,23 @@ export const DEMO_TASKS = [
   },
 ];
 
+// Calendar events — use real date strings + day index derived from date
+// day: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
+function weekDateStr(dayOffset) {
+  // dayOffset: 0=Mon of this week, 1=Tue, …, 4=Fri
+  const monday = new Date(getMonday(new Date()) + 'T12:00:00');
+  const d = new Date(monday);
+  d.setDate(monday.getDate() + dayOffset);
+  return d.toISOString().split('T')[0];
+}
+
 export const DEMO_CALENDAR = [
-  { id: 'e1', title: 'All Hands', time: '10:00', duration: 60, day: 1, color: '#D4634B', attendees: 'Everyone' },
-  { id: 'e2', title: 'Marketing Sync', time: '14:00', duration: 45, day: 1, color: '#8B5CF6', attendees: 'Leyla, Seda, Esra' },
-  { id: 'e3', title: 'Digital Platform Review', time: '11:00', duration: 60, day: 2, color: '#10B981', attendees: 'Pınar, Gökhan' },
-  { id: 'e4', title: '1:1 Esra ↔ Leyla', time: '15:00', duration: 30, day: 3, color: '#D4634B', attendees: 'Esra, Leyla' },
-  { id: 'e5', title: 'Campaign Review', time: '10:00', duration: 45, day: 3, color: '#8B5CF6', attendees: 'Leyla, Pınar, Seda' },
-  { id: 'e6', title: 'Local Ops Planning', time: '09:00', duration: 60, day: 4, color: '#F59E0B', attendees: 'Seda, Esra' },
-  { id: 'e7', title: 'Team Lunch', time: '12:30', duration: 60, day: 5, color: '#EC4899', attendees: 'Everyone' },
-  { id: 'e8', title: 'Content Calendar Review', time: '16:00', duration: 30, day: 5, color: '#8B5CF6', attendees: 'Leyla, Gökhan' },
+  { id: 'e1', title: 'All Hands',              time: '10:00', duration: 60,  day: 1, date: weekDateStr(0), color: '#D4634B', attendees: 'Everyone' },
+  { id: 'e2', title: 'Marketing Sync',          time: '14:00', duration: 45,  day: 1, date: weekDateStr(0), color: '#8B5CF6', attendees: 'Leyla, Seda, Esra' },
+  { id: 'e3', title: 'Digital Platform Review', time: '11:00', duration: 60,  day: 2, date: weekDateStr(1), color: '#10B981', attendees: 'Pınar, Gökhan' },
+  { id: 'e4', title: '1:1 Esra ↔ Leyla',       time: '15:00', duration: 30,  day: 3, date: weekDateStr(2), color: '#D4634B', attendees: 'Esra, Leyla' },
+  { id: 'e5', title: 'Campaign Review',         time: '10:00', duration: 45,  day: 3, date: weekDateStr(2), color: '#8B5CF6', attendees: 'Leyla, Pınar, Seda' },
+  { id: 'e6', title: 'Local Ops Planning',      time: '09:00', duration: 60,  day: 4, date: weekDateStr(3), color: '#F59E0B', attendees: 'Seda, Esra' },
+  { id: 'e7', title: 'Team Lunch',              time: '12:30', duration: 60,  day: 5, date: weekDateStr(4), color: '#EC4899', attendees: 'Everyone' },
+  { id: 'e8', title: 'Content Calendar Review', time: '16:00', duration: 30,  day: 5, date: weekDateStr(4), color: '#8B5CF6', attendees: 'Leyla, Gökhan' },
 ];
