@@ -250,7 +250,7 @@ export default function App() {
               fontFamily: "'Space Mono', monospace", color: '#F8FAFC',
               display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
             }}>
-              TeamHub
+              HarmonyHub
               {isConnected
                 ? <span style={{ fontSize: 10, background: 'rgba(16,185,129,0.15)', color: '#6EE7B7', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>LIVE</span>
                 : <span style={{ fontSize: 10, background: 'rgba(245,158,11,0.15)', color: '#FCD34D', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>DEMO</span>
@@ -380,7 +380,7 @@ export default function App() {
         borderTop: '1px solid rgba(255,255,255,0.04)',
         textAlign: 'center', fontSize: 11, color: '#334155', marginTop: 40,
       }}>
-        TeamHub · Powered by Airtable · Built with Claude
+        HarmonyHub · Powered by Airtable · Built with Claude
       </footer>
     </div>
   );
