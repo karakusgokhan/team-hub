@@ -1,27 +1,43 @@
 import React, { useState } from 'react';
 import { TEAM_MEMBERS } from '../utils/config';
 import { todayStr } from '../utils/helpers';
+import { airtableCreate } from '../utils/airtable';
 import { Avatar, StatusBadge, WhatsAppButton } from './Shared';
 
-export default function CheckIn({ checkins, setCheckins, currentUser }) {
+export default function CheckIn({ checkins, setCheckins, currentUser, config, onWriteError }) {
   const [showForm, setShowForm] = useState(false);
   const [status, setStatus] = useState('office');
   const [note, setNote] = useState('');
 
   const now = new Date();
 
-  const handleCheckin = () => {
+  const handleCheckin = async () => {
+    const checkInTime = new Date();
     const newCheckin = {
       id: `c${Date.now()}`,
       person: currentUser,
       status,
       note,
       date: todayStr(),
-      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: checkInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setCheckins(prev => [newCheckin, ...prev.filter(c => c.person !== currentUser)]);
     setShowForm(false);
     setNote('');
+
+    if (config?.apiKey && config?.baseId) {
+      const fields = {
+        Person: currentUser,
+        Date:   newCheckin.date,
+        Status: status,
+        Time:   newCheckin.time,
+        ...(note.trim() ? { Note: note.trim() } : {}),
+      };
+      const result = await airtableCreate(config, 'DailyCheckIns', fields);
+      if (!result) {
+        onWriteError?.('Check-in saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
+      }
+    }
   };
 
   const todayCheckins = checkins.filter(c => c.date === todayStr());

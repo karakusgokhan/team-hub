@@ -25,7 +25,7 @@ const KANBAN_COLS = ['todo', 'in-progress', 'done', 'blocked'];
 const isOverdue = (task) =>
   task.dueDate && task.dueDate < todayStr() && task.status !== 'done';
 
-export default function Tasks({ tasks, setTasks, currentUser, config }) {
+export default function Tasks({ tasks, setTasks, currentUser, config, onWriteError }) {
   const [viewMode, setViewMode] = useState('list');
   const [showMyTasks, setShowMyTasks] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -41,8 +41,9 @@ export default function Tasks({ tasks, setTasks, currentUser, config }) {
   const handleStatusChange = async (task) => {
     const next = STATUS_CYCLE[task.status];
     setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: next } : t));
-    if (config?.apiKey) {
-      await airtableUpdate(config, 'Tasks', task.id, { Status: next });
+    if (config?.apiKey && config?.baseId) {
+      const result = await airtableUpdate(config, 'Tasks', task.id, { Status: next });
+      if (!result) onWriteError?.('Status update failed to save to Airtable. Check the browser console (F12).');
     }
   };
 
@@ -65,18 +66,21 @@ export default function Tasks({ tasks, setTasks, currentUser, config }) {
     setFormTitle(''); setFormDescription(''); setFormAssignedTo(currentUser);
     setFormDueDate(''); setFormPriority('medium');
 
-    if (config?.apiKey) {
+    if (config?.apiKey && config?.baseId) {
       const result = await airtableCreate(config, 'Tasks', {
-        Title:       newTask.title,
-        Description: newTask.description,
-        AssignedTo:  newTask.assignedTo,
-        CreatedBy:   newTask.createdBy,
-        DueDate:     newTask.dueDate || null,
-        Priority:    newTask.priority,
-        Status:      'todo',
+        Title:      newTask.title,
+        AssignedTo: newTask.assignedTo,
+        CreatedBy:  newTask.createdBy,
+        Priority:   newTask.priority,
+        Status:     'todo',
+        // Omit empty fields — Airtable rejects null/empty for Date and Long text fields
+        ...(newTask.description ? { Description: newTask.description } : {}),
+        ...(newTask.dueDate     ? { DueDate:     newTask.dueDate }     : {}),
       });
       if (result?.id) {
         setTasks(prev => prev.map(t => t.id === tempId ? { ...t, id: result.id } : t));
+      } else {
+        onWriteError?.('Task saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
       }
     }
   };

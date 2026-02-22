@@ -6,7 +6,7 @@ import { Avatar, PriorityStatus, WhatsAppButton } from './Shared';
 
 const STATUS_CYCLE = { todo: 'in-progress', 'in-progress': 'done', done: 'todo' };
 
-export default function Priorities({ priorities, setPriorities, currentUser, config }) {
+export default function Priorities({ priorities, setPriorities, currentUser, config, onWriteError }) {
   const [showForm, setShowForm] = useState(false);
   const [newPriorityText, setNewPriorityText] = useState('');
   const [expanded, setExpanded] = useState({ [currentUser]: true });
@@ -98,8 +98,9 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
     setPriorities(prev =>
       prev.map(p => p.id === record.id ? { ...p, status: next } : p)
     );
-    if (config?.apiKey) {
-      await airtableUpdate(config, 'WeeklyPriorities', record.id, { Status: next });
+    if (config?.apiKey && config?.baseId) {
+      const result = await airtableUpdate(config, 'WeeklyPriorities', record.id, { Status: next });
+      if (!result) onWriteError?.('Status update failed to save to Airtable. Check the browser console (F12).');
     }
   };
 
@@ -120,9 +121,12 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
       return p;
     }));
 
-    if (config?.apiKey) {
-      await airtableUpdate(config, 'WeeklyPriorities', record.id, { SortOrder: swapOrder });
-      await airtableUpdate(config, 'WeeklyPriorities', swapItem.id, { SortOrder: newOrder });
+    if (config?.apiKey && config?.baseId) {
+      const [r1, r2] = await Promise.all([
+        airtableUpdate(config, 'WeeklyPriorities', record.id,   { SortOrder: swapOrder }),
+        airtableUpdate(config, 'WeeklyPriorities', swapItem.id, { SortOrder: newOrder }),
+      ]);
+      if (!r1 || !r2) onWriteError?.('Reorder failed to save to Airtable. Check the browser console (F12).');
     }
   };
 
@@ -143,7 +147,7 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
     setNewPriorityText('');
     setShowForm(false);
 
-    if (config?.apiKey) {
+    if (config?.apiKey && config?.baseId) {
       const result = await airtableCreate(config, 'WeeklyPriorities', {
         Person:    currentUser,
         Week:      viewedWeek,
@@ -153,6 +157,8 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
       });
       if (result?.id) {
         setPriorities(prev => prev.map(p => p.id === tempId ? { ...p, id: result.id } : p));
+      } else {
+        onWriteError?.('Priority saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
       }
     }
   };

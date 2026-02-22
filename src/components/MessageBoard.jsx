@@ -1,24 +1,41 @@
 import React, { useState } from 'react';
 import { CHANNELS } from '../utils/config';
 import { timeAgo, shareToWhatsApp } from '../utils/helpers';
+import { airtableCreate } from '../utils/airtable';
 import { Avatar, WhatsAppIcon } from './Shared';
 
-export default function MessageBoard({ messages, setMessages, currentUser }) {
+export default function MessageBoard({ messages, setMessages, currentUser, config, onWriteError }) {
   const [channel, setChannel] = useState('general');
   const [newMsg, setNewMsg] = useState('');
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!newMsg.trim()) return;
     const msg = {
       id: `m${Date.now()}`,
       person: currentUser,
-      text: newMsg,
+      text: newMsg.trim(),
       time: new Date().toISOString(),
       channel,
       pinned: false,
     };
     setMessages(prev => [msg, ...prev]);
     setNewMsg('');
+
+    if (config?.apiKey && config?.baseId) {
+      const result = await airtableCreate(config, 'Messages', {
+        Person:    currentUser,
+        Text:      msg.text,
+        Channel:   channel,
+        Pinned:    false,
+        CreatedAt: msg.time,
+      });
+      if (result?.id) {
+        // Replace temp id with real Airtable id
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, id: result.id } : m));
+      } else {
+        onWriteError?.('Message saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
+      }
+    }
   };
 
   const channelMessages = messages.filter(m => m.channel === channel);

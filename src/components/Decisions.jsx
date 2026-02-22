@@ -22,7 +22,7 @@ const STATUS_BTN_LABEL = { active: 'Mark Revised', revised: 'Mark Reversed', rev
 
 const CATEGORIES = ['all', 'product', 'marketing', 'operations', 'finance', 'hr'];
 
-export default function Decisions({ decisions, setDecisions, currentUser, config }) {
+export default function Decisions({ decisions, setDecisions, currentUser, config, onWriteError }) {
   const [showForm, setShowForm] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,8 +35,9 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
     setDecisions(prev =>
       prev.map(d => d.id === decision.id ? { ...d, status: next } : d)
     );
-    if (config?.apiKey) {
-      await airtableUpdate(config, 'Decisions', decision.id, { Status: next });
+    if (config?.apiKey && config?.baseId) {
+      const result = await airtableUpdate(config, 'Decisions', decision.id, { Status: next });
+      if (!result) onWriteError?.('Status update failed to save to Airtable. Check the browser console (F12).');
     }
   };
 
@@ -58,17 +59,20 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
     setFormDescription('');
     setFormCategory('product');
 
-    if (config?.apiKey) {
+    if (config?.apiKey && config?.baseId) {
       const result = await airtableCreate(config, 'Decisions', {
-        Title:       newDecision.title,
-        Description: newDecision.description,
-        DecidedBy:   newDecision.decidedBy,
-        Date:        newDecision.date,
-        Category:    newDecision.category,
-        Status:      'active',
+        Title:     newDecision.title,
+        DecidedBy: newDecision.decidedBy,
+        Date:      newDecision.date,
+        Category:  newDecision.category,
+        Status:    'active',
+        // Omit empty Description — Airtable Long text fields may reject empty strings
+        ...(newDecision.description ? { Description: newDecision.description } : {}),
       });
       if (result?.id) {
         setDecisions(prev => prev.map(d => d.id === tempId ? { ...d, id: result.id } : d));
+      } else {
+        onWriteError?.('Decision saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
       }
     }
   };

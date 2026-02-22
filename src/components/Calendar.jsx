@@ -123,7 +123,7 @@ function assignEventRows(weekCells, events) {
   return { rowMap, maxRows: rowSlots.length, weekEvents };
 }
 
-export default function Calendar({ events, setEvents, currentUser, config }) {
+export default function Calendar({ events, setEvents, currentUser, config, onWriteError }) {
   const now = new Date();
   const today = todayStr();
 
@@ -230,21 +230,24 @@ export default function Calendar({ events, setEvents, currentUser, config }) {
       const updated = { ...editingEvent, ...eventData };
       setEvents(prev => prev.map(e => e.id === editingEvent.id ? updated : e));
       closeForm();
-      if (config?.apiKey) {
-        await airtableUpdate(config, 'Events', editingEvent.id, airtableFields);
+      if (config?.apiKey && config?.baseId) {
+        const result = await airtableUpdate(config, 'Events', editingEvent.id, airtableFields);
+        if (!result) onWriteError?.('Event update failed to save to Airtable. Check the browser console (F12).');
       }
     } else {
       const tempId = `ev${Date.now()}`;
       const newEvent = { id: tempId, ...eventData };
       setEvents(prev => [...prev, newEvent]);
       closeForm();
-      if (config?.apiKey) {
+      if (config?.apiKey && config?.baseId) {
         const result = await airtableCreate(config, 'Events', {
           ...airtableFields,
           CreatedBy: currentUser,
         });
         if (result?.id) {
           setEvents(prev => prev.map(e => e.id === tempId ? { ...e, id: result.id } : e));
+        } else {
+          onWriteError?.('Event saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
         }
       }
     }

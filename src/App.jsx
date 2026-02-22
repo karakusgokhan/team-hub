@@ -54,6 +54,12 @@ export default function App() {
   const [decisions, setDecisions]   = useState(DEMO_DECISIONS);
   const [tasks, setTasks]           = useState(DEMO_TASKS);
   const [isConnected, setIsConnected] = useState(false);
+  const [writeError, setWriteError] = useState('');
+
+  const onWriteError = (msg) => {
+    setWriteError(msg);
+    setTimeout(() => setWriteError(''), 10000);
+  };
 
   // Save config to localStorage when it changes
   useEffect(() => {
@@ -366,28 +372,46 @@ export default function App() {
         ))}
       </nav>
 
+      {/* Write error banner */}
+      {writeError && (
+        <div style={{
+          margin: '0 clamp(16px, 4vw, 32px)',
+          padding: '12px 16px',
+          background: 'rgba(239,68,68,0.12)',
+          border: '1px solid rgba(239,68,68,0.3)',
+          borderRadius: 10, marginTop: 12,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        }}>
+          <span style={{ fontSize: 13, color: '#FCA5A5' }}>⚠️ {writeError}</span>
+          <button onClick={() => setWriteError('')} style={{
+            background: 'transparent', border: 'none', color: '#F87171',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, flexShrink: 0,
+          }}>✕</button>
+        </div>
+      )}
+
       {/* Content */}
       <main style={{
         padding: 'clamp(16px, 4vw, 24px) clamp(16px, 4vw, 32px)',
         maxWidth: 1100, margin: '0 auto',
       }}>
         {activeTab === 'checkin' && (
-          <CheckIn checkins={checkins} setCheckins={setCheckins} currentUser={currentUser} config={config} />
+          <CheckIn checkins={checkins} setCheckins={setCheckins} currentUser={currentUser} config={config} onWriteError={onWriteError} />
         )}
         {activeTab === 'priorities' && (
-          <Priorities priorities={priorities} setPriorities={setPriorities} currentUser={currentUser} config={config} />
+          <Priorities priorities={priorities} setPriorities={setPriorities} currentUser={currentUser} config={config} onWriteError={onWriteError} />
         )}
         {activeTab === 'board' && (
-          <MessageBoard messages={messages} setMessages={setMessages} currentUser={currentUser} config={config} />
+          <MessageBoard messages={messages} setMessages={setMessages} currentUser={currentUser} config={config} onWriteError={onWriteError} />
         )}
         {activeTab === 'decisions' && (
-          <Decisions decisions={decisions} setDecisions={setDecisions} currentUser={currentUser} config={config} />
+          <Decisions decisions={decisions} setDecisions={setDecisions} currentUser={currentUser} config={config} onWriteError={onWriteError} />
         )}
         {activeTab === 'tasks' && (
-          <Tasks tasks={tasks} setTasks={setTasks} currentUser={currentUser} config={config} />
+          <Tasks tasks={tasks} setTasks={setTasks} currentUser={currentUser} config={config} onWriteError={onWriteError} />
         )}
         {activeTab === 'calendar' && (
-          <Calendar events={calendarEvents} setEvents={setCalendarEvents} currentUser={currentUser} config={config} />
+          <Calendar events={calendarEvents} setEvents={setCalendarEvents} currentUser={currentUser} config={config} onWriteError={onWriteError} />
         )}
       </main>
 
