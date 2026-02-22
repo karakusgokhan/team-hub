@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DEFAULT_AIRTABLE_CONFIG, TEAM_MEMBERS } from './utils/config';
 import { todayStr, getMonday } from './utils/helpers';
 import { airtableFetch } from './utils/airtable';
@@ -30,7 +30,13 @@ export default function App() {
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('teamhub_config');
-      return saved ? JSON.parse(saved) : DEFAULT_AIRTABLE_CONFIG;
+      const stored = saved ? JSON.parse(saved) : {};
+      return {
+        ...DEFAULT_AIRTABLE_CONFIG,  // baseId + build-time token as defaults
+        ...stored,                    // preserve any user-overridden baseId
+        // Build-time env var always wins for apiKey — never read from localStorage
+        apiKey: import.meta.env.VITE_AIRTABLE_TOKEN || stored.apiKey || '',
+      };
     } catch {
       return DEFAULT_AIRTABLE_CONFIG;
     }
@@ -60,6 +66,50 @@ export default function App() {
     setWriteError(msg);
     setTimeout(() => setWriteError(''), 10000);
   };
+
+  // Standalone calendar refresh — called by Calendar on mount, after save, and on interval
+  const refreshCalendarEvents = useCallback(async () => {
+    if (!config.apiKey || !config.baseId) return;
+    const eventsData = await airtableFetch(config, 'Events', {
+      maxRecords: 200,
+    });
+    if (!eventsData) return; // network error — keep existing state
+
+    console.log('[Calendar] Raw records from Airtable:', eventsData.records.map(r => ({
+      id: r.id,
+      fields: r.fields,
+    })));
+
+    const mapped = eventsData.records
+      .filter(r => r.fields.Title || r.fields.Date) // skip completely empty ghost rows
+      .map(r => {
+        // Normalise date: Airtable Date fields return 'YYYY-MM-DD';
+        // Date+time fields return 'YYYY-MM-DDTHH:mm:ss.sssZ' — strip time component.
+        const rawDate = r.fields.Date || '';
+        const dateStr = rawDate.length > 10 ? rawDate.slice(0, 10) : rawDate;
+
+        const rawEnd  = r.fields.EndDate || '';
+        const endDate = rawEnd.length > 10 ? rawEnd.slice(0, 10) : (rawEnd || dateStr);
+
+        const allDay = r.fields.AllDay || false;
+        return {
+          id:        r.id,
+          title:     r.fields.Title     || '(no title)',
+          date:      dateStr,
+          endDate:   endDate,
+          allDay:    allDay,
+          time:      allDay ? '' : (r.fields.StartTime || '09:00'),
+          duration:  allDay ? 0  : (r.fields.Duration  || 60),
+          attendees: r.fields.Attendees || '',
+          color:     r.fields.Color     || '#6366F1',
+        };
+      });
+
+    console.log('[Calendar] Mapped events for UI:', mapped);
+    // Events with no date will stay in state but won't match any calendar cell —
+    // the week view only processes Mon–Fri and the month view checks date strings.
+    setCalendarEvents(mapped);
+  }, [config]);
 
   // Save config to localStorage when it changes
   useEffect(() => {
@@ -111,10 +161,6 @@ export default function App() {
       // Load weekly priorities for current week
       const prioritiesData = await airtableFetch(config, 'WeeklyPriorities', {
         filterByFormula: `{Week} = '${getMonday(new Date())}'`,
-        sort: JSON.stringify([
-          { field: 'Person',    direction: 'asc' },
-          { field: 'SortOrder', direction: 'asc' },
-        ]),
       });
       if (prioritiesData?.records?.length > 0) {
         setPriorities(prioritiesData.records.map(r => ({
@@ -129,7 +175,6 @@ export default function App() {
 
       // Load messages
       const msgData = await airtableFetch(config, 'Messages', {
-        sort: JSON.stringify([{ field: 'CreatedAt', direction: 'desc' }]),
         maxRecords: 50,
       });
       if (msgData?.records?.length > 0) {
@@ -145,7 +190,6 @@ export default function App() {
 
       // Load decisions
       const decisionsData = await airtableFetch(config, 'Decisions', {
-        sort: JSON.stringify([{ field: 'Date', direction: 'desc' }]),
         maxRecords: 100,
       });
       if (decisionsData?.records?.length > 0) {
@@ -162,7 +206,6 @@ export default function App() {
 
       // Load tasks
       const tasksData = await airtableFetch(config, 'Tasks', {
-        sort: JSON.stringify([{ field: 'CreatedAt', direction: 'desc' }]),
         maxRecords: 200,
       });
       if (tasksData?.records?.length > 0) {
@@ -179,46 +222,8 @@ export default function App() {
         })));
       }
 
-      // Load calendar events
-      const eventsData = await airtableFetch(config, 'Events', {
-        sort: JSON.stringify([{ field: 'Date', direction: 'asc' }]),
-        maxRecords: 200,
-      });
-      if (eventsData?.records?.length > 0) {
-        const mapped = eventsData.records.map(r => {
-          const dateStr  = r.fields.Date    || '';
-          const endDate  = r.fields.EndDate || dateStr;
-          const allDay   = r.fields.AllDay  || false;
-          const dow = dateStr ? new Date(dateStr + 'T12:00:00').getDay() : 0;
-          const day = (dow === 0 || dow === 6) ? null : dow;
-          return {
-            id:        r.id,
-            title:     r.fields.Title || '',
-            date:      dateStr,
-            endDate:   endDate,
-            day:       day,
-            allDay:    allDay,
-            time:      allDay ? '' : (r.fields.StartTime || '09:00'),
-            duration:  allDay ? 0  : (r.fields.Duration  || 60),
-            attendees: r.fields.Attendees || '',
-            color:     r.fields.Color     || '#6366F1',
-          };
-        // Keep events that cover at least one weekday (Mon-Fri)
-        }).filter(e => {
-          if (e.day !== null) return true;
-          // multi-day starting on weekend — check if it spans into a weekday
-          const end = e.endDate || e.date;
-          if (!e.date || !end) return false;
-          const s = new Date(e.date + 'T12:00:00');
-          const f = new Date(end  + 'T12:00:00');
-          for (let d = new Date(s); d <= f; d.setDate(d.getDate() + 1)) {
-            const dow = d.getDay();
-            if (dow >= 1 && dow <= 5) return true;
-          }
-          return false;
-        });
-        setCalendarEvents(mapped);
-      }
+      // Load calendar events (delegates to refreshCalendarEvents for reuse)
+      await refreshCalendarEvents();
     };
 
     loadData();
@@ -411,7 +416,7 @@ export default function App() {
           <Tasks tasks={tasks} setTasks={setTasks} currentUser={currentUser} config={config} onWriteError={onWriteError} />
         )}
         {activeTab === 'calendar' && (
-          <Calendar events={calendarEvents} setEvents={setCalendarEvents} currentUser={currentUser} config={config} onWriteError={onWriteError} />
+          <Calendar events={calendarEvents} setEvents={setCalendarEvents} currentUser={currentUser} config={config} onWriteError={onWriteError} refreshEvents={refreshCalendarEvents} />
         )}
       </main>
 

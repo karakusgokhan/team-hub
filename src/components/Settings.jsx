@@ -31,28 +31,37 @@ export default function Settings({ config, setConfig, onClose }) {
           Connect to your Airtable base to sync team data. The app works in demo mode without a connection.
         </p>
 
-        {/* Airtable fields */}
-        {[
-          { key: 'apiKey', label: 'Personal Access Token', placeholder: 'pat...' },
-          { key: 'baseId', label: 'Base ID', placeholder: 'app...' },
-        ].map(({ key, label, placeholder }) => (
-          <div key={key} style={{ marginBottom: 16 }}>
-            <label style={{
-              fontSize: 12, fontWeight: 600, color: '#94A3B8', display: 'block', marginBottom: 6,
-              textTransform: 'uppercase', letterSpacing: '0.06em'
-            }}>{label}</label>
-            <input
-              value={config[key]} placeholder={placeholder}
-              onChange={(e) => setConfig(prev => ({ ...prev, [key]: e.target.value }))}
-              type={key === 'apiKey' ? 'password' : 'text'}
-              style={{
-                width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#E2E8F0',
-                fontSize: 14, outline: 'none', fontFamily: "'Space Mono', monospace"
-              }}
-            />
-          </div>
-        ))}
+        {/* Token status — injected at build time, not user-editable */}
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 8,
+          background: config.apiKey ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+          border: `1px solid ${config.apiKey ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+        }}>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 600,
+            color: config.apiKey ? '#6EE7B7' : '#FCA5A5' }}>
+            {config.apiKey
+              ? '🔑 Personal Access Token: active'
+              : '⚠️ Personal Access Token: not configured — contact your admin'}
+          </p>
+        </div>
+
+        {/* Base ID — editable in case a team wants to switch bases */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{
+            fontSize: 12, fontWeight: 600, color: '#94A3B8', display: 'block', marginBottom: 6,
+            textTransform: 'uppercase', letterSpacing: '0.06em'
+          }}>Base ID</label>
+          <input
+            value={config.baseId} placeholder="app..."
+            onChange={(e) => setConfig(prev => ({ ...prev, baseId: e.target.value }))}
+            type="text"
+            style={{
+              width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#E2E8F0',
+              fontSize: 14, outline: 'none', fontFamily: "'Space Mono', monospace"
+            }}
+          />
+        </div>
 
         {/* Test connection */}
         <button onClick={handleTest} disabled={testing || !config.apiKey || !config.baseId} style={{

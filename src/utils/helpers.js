@@ -15,7 +15,11 @@ export const getMonday = (d) => {
   const date = new Date(d);
   const day = date.getDay();
   const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(date.setDate(diff)).toISOString().split('T')[0];
+  date.setDate(diff);
+  const y  = date.getFullYear();
+  const m  = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
 };
 
 // Returns the Sunday of the week that starts on the given Monday string
@@ -41,8 +45,9 @@ export const timeAgo = (iso) => {
 };
 
 export const getWeekDays = () => {
-  const monday = new Date(getMonday(new Date()));
-  return Array.from({ length: 5 }, (_, i) => {
+  // Use noon anchor to avoid UTC-midnight timezone shifts
+  const monday = new Date(getMonday(new Date()) + 'T12:00:00');
+  return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     return d;

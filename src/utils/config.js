@@ -25,12 +25,15 @@ export const AIRTABLE_TABLES = {
   messages:    'Messages',
   decisions:   'Decisions',
   tasks:       'Tasks',
+  events:      'Events',
 };
 
 /**
- * Default Airtable config — users enter their own in Settings
+ * Default Airtable config.
+ * apiKey is injected at build time via the VITE_AIRTABLE_TOKEN GitHub Actions secret.
+ * baseId is not sensitive and is hardcoded here.
  */
 export const DEFAULT_AIRTABLE_CONFIG = {
-  apiKey: '',
-  baseId: '',
+  apiKey: import.meta.env.VITE_AIRTABLE_TOKEN || '',
+  baseId: 'appnajwI6eftRR7Vh',
 };

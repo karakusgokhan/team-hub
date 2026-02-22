@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { dayNames, monthNames, todayStr, getMonday, getWeekDays } from '../utils/helpers';
 import { airtableCreate, airtableUpdate, airtableDelete } from '../utils/airtable';
 import { WhatsAppButton } from './Shared';
@@ -123,9 +123,33 @@ function assignEventRows(weekCells, events) {
   return { rowMap, maxRows: rowSlots.length, weekEvents };
 }
 
-export default function Calendar({ events, setEvents, currentUser, config, onWriteError }) {
+export default function Calendar({ events, setEvents, currentUser, config, onWriteError, refreshEvents }) {
   const now = new Date();
   const today = todayStr();
+
+  // ── Live-sync state ──────────────────────────────────────────────────────
+  const [syncing, setSyncing] = useState(false);
+
+  // Fetch fresh events on tab activation (mount) and every 60 s.
+  // Cleans up the interval automatically when the Calendar tab is left.
+  useEffect(() => {
+    if (!refreshEvents) return;
+    let cancelled = false;
+
+    const doRefresh = async () => {
+      if (cancelled) return;
+      setSyncing(true);
+      await refreshEvents();
+      if (!cancelled) setSyncing(false);
+    };
+
+    doRefresh();
+    const timer = setInterval(doRefresh, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [refreshEvents]);
 
   // ── View mode ─────────────────────────────────────────────────────────────
   const [viewMode, setViewMode] = useState('week'); // 'week' | 'month'
@@ -231,23 +255,23 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
       setEvents(prev => prev.map(e => e.id === editingEvent.id ? updated : e));
       closeForm();
       if (config?.apiKey && config?.baseId) {
-        const result = await airtableUpdate(config, 'Events', editingEvent.id, airtableFields);
-        if (!result) onWriteError?.('Event update failed to save to Airtable. Check the browser console (F12).');
+        await airtableUpdate(config, 'Events', editingEvent.id, airtableFields, onWriteError);
+        // Refresh to confirm the saved state matches Airtable
+        await refreshEvents?.();
       }
     } else {
       const tempId = `ev${Date.now()}`;
       const newEvent = { id: tempId, ...eventData };
-      setEvents(prev => [...prev, newEvent]);
+      setEvents(prev => [...prev, newEvent]); // Optimistic — visible immediately
       closeForm();
       if (config?.apiKey && config?.baseId) {
         const result = await airtableCreate(config, 'Events', {
           ...airtableFields,
           CreatedBy: currentUser,
-        });
+        }, onWriteError);
         if (result?.id) {
-          setEvents(prev => prev.map(e => e.id === tempId ? { ...e, id: result.id } : e));
-        } else {
-          onWriteError?.('Event saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
+          // Full refresh replaces the temp-id event with the real Airtable record
+          await refreshEvents?.();
         }
       }
     }
@@ -263,7 +287,7 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
   };
 
   const buildWhatsAppText = () => {
-    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const lines = dayLabels.map((label, i) => {
       const dayStr = weekDayStrs[i];
       const dayEvents = events.filter(e => eventAppearsOnDay(e, dayStr));
@@ -551,6 +575,24 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
           Team Calendar
         </h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Live-sync indicator — only shown when Airtable is connected */}
+          {refreshEvents && (
+            <span style={{
+              fontSize: 11, fontWeight: 600, letterSpacing: '0.04em',
+              color: syncing ? '#FCD34D' : '#6EE7B7',
+              display: 'flex', alignItems: 'center', gap: 4,
+              opacity: syncing ? 1 : 0.7,
+              transition: 'color 0.3s, opacity 0.3s',
+            }}>
+              <span style={{
+                display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                background: syncing ? '#FCD34D' : '#10B981',
+                animation: syncing ? 'pulse 1s infinite' : 'none',
+              }} />
+              {syncing ? 'Syncing…' : 'Live'}
+            </span>
+          )}
+
           {/* View toggle */}
           <div style={{
             display: 'flex', background: 'rgba(255,255,255,0.04)',
@@ -657,9 +699,6 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
                 }}
                 style={inputStyle}
               />
-              {formDate && !formEndDate && viewMode === 'week' && dayIndexFromDate(formDate) === null && (
-                <p style={{ margin: '4px 0 0', fontSize: 11, color: '#FCA5A5' }}>Weekends aren't shown in the week view.</p>
-              )}
             </div>
 
             {/* End Date */}
@@ -777,7 +816,7 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
 
       {/* ── Week view grid ────────────────────────────────────────────────── */}
       {viewMode === 'week' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, minHeight: 400 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, minHeight: 400 }}>
           {weekDays.map((day, di) => {
             const isToday = toDateStr(day) === today;
             const dayDateStr = toDateStr(day);
