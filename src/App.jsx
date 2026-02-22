@@ -143,20 +143,48 @@ export default function App() {
       if (!teamData) { setIsConnected(false); return; }
       setIsConnected(true);
 
-      // Load check-ins for today
+      // ── One-time broad cleanup (fire-and-forget, doesn't block UI) ──────────
+      // Fetch all DailyCheckIns records across every date, group by (person + date),
+      // keep the most recent per group, and silently delete all older duplicates.
+      // This handles existing Airtable duplicates created before the upsert fix.
+      ;(async () => {
+        const allData = await airtableFetch(config, 'DailyCheckIns', { maxRecords: 500 });
+        if (!allData?.records?.length) return;
+        // Sort newest-first by Airtable's auto-set createdTime
+        const sorted = [...allData.records].sort(
+          (a, b) => new Date(b.createdTime) - new Date(a.createdTime)
+        );
+        const seen = new Set();
+        for (const r of sorted) {
+          // Normalise date: strip any time component (handles both 'YYYY-MM-DD' and
+          // 'YYYY-MM-DDTHH:mm:ss.sssZ' depending on how the Airtable field is configured)
+          const date = (r.fields.Date || '').slice(0, 10);
+          const key  = `${r.fields.Person}|${date}`;
+          if (seen.has(key)) {
+            airtableDelete(config, 'DailyCheckIns', r.id); // older duplicate → delete
+          } else {
+            seen.add(key);
+          }
+        }
+      })();
+
+      // ── Load today's check-ins for the UI ──────────────────────────────────
       const checkInData = await airtableFetch(config, 'DailyCheckIns', {
         filterByFormula: `{Date} = '${todayStr()}'`,
       });
       if (checkInData?.records?.length > 0) {
-        // Include createdTime for deduplication sorting, then strip it from state
+        // Normalise date to YYYY-MM-DD — Airtable can return either a plain date string
+        // ('2026-02-23') or an ISO timestamp ('2026-02-23T00:00:00.000Z') depending on
+        // whether the Date field has "Include time" enabled.  Slicing to 10 chars handles
+        // both formats and makes the string comparable with todayStr().
         const mapped = checkInData.records.map(r => ({
           id:           r.id,
           person:       r.fields.Person,
           status:       r.fields.Status,
           note:         r.fields.Note || '',
-          date:         r.fields.Date,
+          date:         (r.fields.Date || '').slice(0, 10),
           time:         r.fields.Time,
-          _createdTime: r.createdTime, // Airtable-provided ISO timestamp
+          _createdTime: r.createdTime,
         }));
 
         // Sort newest-first so the first entry per person is the one to keep
@@ -166,7 +194,6 @@ export default function App() {
         const deduped = [];
         for (const ci of mapped) {
           if (seen.has(ci.person)) {
-            // Older duplicate — delete from Airtable silently
             airtableDelete(config, 'DailyCheckIns', ci.id);
           } else {
             seen.add(ci.person);
@@ -174,7 +201,6 @@ export default function App() {
           }
         }
 
-        // Remove the internal sort key before storing in state
         setCheckins(deduped.map(({ _createdTime, ...rest }) => rest));
       }
 

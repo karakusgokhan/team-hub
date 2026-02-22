@@ -2,7 +2,16 @@
  * Date and formatting helpers for HarmonyHub
  */
 
-export const todayStr = () => new Date().toISOString().split('T')[0];
+// Returns today's date as YYYY-MM-DD in the user's LOCAL timezone.
+// Do NOT use toISOString() here — it returns UTC, which can be one day
+// behind in timezones ahead of UTC (e.g. Istanbul UTC+3 before 3 AM).
+export const todayStr = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
 export const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 

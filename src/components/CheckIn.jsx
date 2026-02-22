@@ -39,8 +39,13 @@ export default function CheckIn({ checkins, setCheckins, currentUser, config, on
 
       // If this person already has a real Airtable record today, update it instead of
       // creating a new one — this is the key guard against duplicate records.
+      // Use .slice(0, 10) on c.date as a safety net: Airtable Date fields can return
+      // either 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:mm:ss.sssZ' depending on field config.
+      const today = todayStr();
       const existing = checkins.find(
-        c => c.person === currentUser && c.date === todayStr() && c.id?.startsWith('rec')
+        c => c.person === currentUser
+          && (c.date || '').slice(0, 10) === today
+          && c.id?.startsWith('rec')
       );
 
       if (existing) {
@@ -65,7 +70,7 @@ export default function CheckIn({ checkins, setCheckins, currentUser, config, on
   // State should already be deduplicated after load, but this is a safety net for any
   // optimistic-update race conditions.
   const todayCheckins = checkins
-    .filter(c => c.date === todayStr())
+    .filter(c => (c.date || '').slice(0, 10) === todayStr())
     .reduce((acc, ci) => {
       if (!acc.find(c => c.person === ci.person)) acc.push(ci);
       return acc;
