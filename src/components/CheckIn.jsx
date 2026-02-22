@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TEAM_MEMBERS } from '../utils/config';
 import { todayStr } from '../utils/helpers';
-import { airtableCreate } from '../utils/airtable';
+import { airtableCreate, airtableUpdate } from '../utils/airtable';
 import { Avatar, StatusBadge, WhatsAppButton } from './Shared';
 
 export default function CheckIn({ checkins, setCheckins, currentUser, config, onWriteError }) {
@@ -13,14 +13,17 @@ export default function CheckIn({ checkins, setCheckins, currentUser, config, on
 
   const handleCheckin = async () => {
     const checkInTime = new Date();
+    const tempId = `c${Date.now()}`;
     const newCheckin = {
-      id: `c${Date.now()}`,
+      id: tempId,
       person: currentUser,
       status,
       note,
       date: todayStr(),
       time: checkInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
+
+    // Optimistic update — replace any existing entry for this user today
     setCheckins(prev => [newCheckin, ...prev.filter(c => c.person !== currentUser)]);
     setShowForm(false);
     setNote('');
@@ -31,16 +34,42 @@ export default function CheckIn({ checkins, setCheckins, currentUser, config, on
         Date:   newCheckin.date,
         Status: status,
         Time:   newCheckin.time,
-        ...(note.trim() ? { Note: note.trim() } : {}),
+        Note:   note.trim(), // always include so an existing note gets cleared if removed
       };
-      const result = await airtableCreate(config, 'DailyCheckIns', fields);
-      if (!result) {
-        onWriteError?.('Check-in saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
+
+      // If this person already has a real Airtable record today, update it instead of
+      // creating a new one — this is the key guard against duplicate records.
+      const existing = checkins.find(
+        c => c.person === currentUser && c.date === todayStr() && c.id?.startsWith('rec')
+      );
+
+      if (existing) {
+        await airtableUpdate(config, 'DailyCheckIns', existing.id, fields, onWriteError);
+        // Keep the real ID in state (optimistic entry used a temp ID)
+        setCheckins(prev => prev.map(c =>
+          c.id === tempId ? { ...c, id: existing.id } : c
+        ));
+      } else {
+        // First check-in of the day — create and store the real Airtable ID
+        const result = await airtableCreate(config, 'DailyCheckIns', fields, onWriteError);
+        if (result?.id) {
+          setCheckins(prev => prev.map(c =>
+            c.id === tempId ? { ...c, id: result.id } : c
+          ));
+        }
       }
     }
   };
 
-  const todayCheckins = checkins.filter(c => c.date === todayStr());
+  // Filter to today, then deduplicate — keep only the first (most recent) entry per person.
+  // State should already be deduplicated after load, but this is a safety net for any
+  // optimistic-update race conditions.
+  const todayCheckins = checkins
+    .filter(c => c.date === todayStr())
+    .reduce((acc, ci) => {
+      if (!acc.find(c => c.person === ci.person)) acc.push(ci);
+      return acc;
+    }, []);
 
   const buildWhatsAppText = () => {
     const statusIcons = { office: '🏢', remote: '🏠', out: '🔴' };

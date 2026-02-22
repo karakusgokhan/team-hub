@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DEFAULT_AIRTABLE_CONFIG, TEAM_MEMBERS } from './utils/config';
 import { todayStr, getMonday } from './utils/helpers';
-import { airtableFetch } from './utils/airtable';
+import { airtableFetch, airtableDelete } from './utils/airtable';
 import {
   DEMO_CHECKINS, DEMO_PRIORITIES, DEMO_MESSAGES,
   DEMO_CALENDAR, DEMO_DECISIONS, DEMO_TASKS,
@@ -148,14 +148,34 @@ export default function App() {
         filterByFormula: `{Date} = '${todayStr()}'`,
       });
       if (checkInData?.records?.length > 0) {
-        setCheckins(checkInData.records.map(r => ({
-          id:     r.id,
-          person: r.fields.Person,
-          status: r.fields.Status,
-          note:   r.fields.Note || '',
-          date:   r.fields.Date,
-          time:   r.fields.Time,
-        })));
+        // Include createdTime for deduplication sorting, then strip it from state
+        const mapped = checkInData.records.map(r => ({
+          id:           r.id,
+          person:       r.fields.Person,
+          status:       r.fields.Status,
+          note:         r.fields.Note || '',
+          date:         r.fields.Date,
+          time:         r.fields.Time,
+          _createdTime: r.createdTime, // Airtable-provided ISO timestamp
+        }));
+
+        // Sort newest-first so the first entry per person is the one to keep
+        mapped.sort((a, b) => new Date(b._createdTime) - new Date(a._createdTime));
+
+        const seen = new Set();
+        const deduped = [];
+        for (const ci of mapped) {
+          if (seen.has(ci.person)) {
+            // Older duplicate — delete from Airtable silently
+            airtableDelete(config, 'DailyCheckIns', ci.id);
+          } else {
+            seen.add(ci.person);
+            deduped.push(ci);
+          }
+        }
+
+        // Remove the internal sort key before storing in state
+        setCheckins(deduped.map(({ _createdTime, ...rest }) => rest));
       }
 
       // Load weekly priorities for current week
