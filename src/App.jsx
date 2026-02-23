@@ -169,35 +169,26 @@ export default function App() {
       })();
 
       // ── Load today's check-ins for the UI ──────────────────────────────────
-      const _todayForFilter = todayStr();
-      console.log('[CheckIn DEBUG] todayStr()          =', _todayForFilter);
-      console.log('[CheckIn DEBUG] new Date().toString()=', new Date().toString());
-      console.log('[CheckIn DEBUG] new Date().toISOString()=', new Date().toISOString());
-
+      // Use IS_SAME(..., 'day') instead of {Date} = '...' equality.
+      // Airtable stores Date fields as UTC datetimes (e.g. 2026-02-24T00:00:00.000Z).
+      // A plain equality filter interprets the right-hand literal in the base's
+      // local timezone (Istanbul = UTC+3), so '2026-02-24' becomes
+      // 2026-02-23T21:00:00Z — 3 hours off from the stored midnight-UTC value.
+      // IS_SAME with 'day' granularity compares only the calendar date portion and
+      // is immune to this timezone mismatch.
       const checkInData = await airtableFetch(config, 'DailyCheckIns', {
-        filterByFormula: `{Date} = '${_todayForFilter}'`,
+        filterByFormula: `IS_SAME({Date}, '${todayStr()}', 'day')`,
       });
-
-      console.log('[CheckIn DEBUG] Airtable raw response:', JSON.stringify(checkInData, null, 2));
-      console.log('[CheckIn DEBUG] Records returned by Airtable:', checkInData?.records?.length ?? 0);
-
       if (checkInData?.records?.length > 0) {
-        const mapped = checkInData.records.map(r => {
-          const rawDate   = r.fields.Date;
-          const normDate  = (rawDate || '').slice(0, 10);
-          console.log(`[CheckIn DEBUG] record ${r.id} | person="${r.fields.Person}" | raw Date="${rawDate}" | normalised="${normDate}" | createdTime="${r.createdTime}"`);
-          return {
-            id:           r.id,
-            person:       r.fields.Person,
-            status:       r.fields.Status,
-            note:         r.fields.Note || '',
-            date:         normDate,
-            time:         r.fields.Time,
-            _createdTime: r.createdTime,
-          };
-        });
-
-        console.log('[CheckIn DEBUG] mapped records before dedup:', mapped.map(c => `${c.person}@${c.date}(${c.id})`));
+        const mapped = checkInData.records.map(r => ({
+          id:           r.id,
+          person:       r.fields.Person,
+          status:       r.fields.Status,
+          note:         r.fields.Note || '',
+          date:         (r.fields.Date || '').slice(0, 10),
+          time:         r.fields.Time,
+          _createdTime: r.createdTime,
+        }));
 
         // Sort newest-first so the first entry per person is the one to keep
         mapped.sort((a, b) => new Date(b._createdTime) - new Date(a._createdTime));
@@ -206,7 +197,6 @@ export default function App() {
         const deduped = [];
         for (const ci of mapped) {
           if (seen.has(ci.person)) {
-            console.log(`[CheckIn DEBUG] deleting duplicate for ${ci.person} id=${ci.id}`);
             airtableDelete(config, 'DailyCheckIns', ci.id);
           } else {
             seen.add(ci.person);
@@ -214,22 +204,12 @@ export default function App() {
           }
         }
 
-        console.log('[CheckIn DEBUG] final state after dedup:', deduped.map(c => `${c.person}@${c.date}`));
         setCheckins(deduped.map(({ _createdTime, ...rest }) => rest));
-      } else {
-        console.log('[CheckIn DEBUG] No records found for today — fetching WITHOUT date filter to see all records:');
-        const allCheckInData = await airtableFetch(config, 'DailyCheckIns', { maxRecords: 50 });
-        console.log('[CheckIn DEBUG] All DailyCheckIns records (no filter):', JSON.stringify(allCheckInData?.records?.map(r => ({
-          id: r.id,
-          person: r.fields.Person,
-          date: r.fields.Date,
-          createdTime: r.createdTime,
-        })), null, 2));
       }
 
       // Load weekly priorities for current week
       const prioritiesData = await airtableFetch(config, 'WeeklyPriorities', {
-        filterByFormula: `{Week} = '${getMonday(new Date())}'`,
+        filterByFormula: `IS_SAME({Week}, '${getMonday(new Date())}', 'day')`,
       });
       if (prioritiesData?.records?.length > 0) {
         setPriorities(prioritiesData.records.map(r => ({
