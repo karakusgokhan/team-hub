@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { dayNames, monthNames, todayStr, getMonday, getWeekDays } from '../utils/helpers';
+import { dayNames, monthNames, todayStr, getMonday, getWeekDays, linkifyText } from '../utils/helpers';
 import { airtableCreate, airtableUpdate, airtableDelete } from '../utils/airtable';
 import { WhatsAppButton } from './Shared';
 import { TEAM_MEMBERS } from '../utils/config';
@@ -341,9 +341,7 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
       >
         {(isFirst || !isMultiDay) && (
           <>
-            <div style={{ fontWeight: 600, color: '#E2E8F0', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {ev.title}
-            </div>
+            <div dangerouslySetInnerHTML={{ __html: linkifyText(ev.title) }} style={{ fontWeight: 600, color: '#E2E8F0', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} />
             {ev.allDay ? (
               <div style={{ color: '#94A3B8', fontSize: 10 }}>All day{isMultiDay ? ' →' : ''}</div>
             ) : (
@@ -352,14 +350,12 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
               </div>
             )}
             {ev.attendees && (
-              <div style={{ color: '#64748B', fontSize: 10, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.attendees}</div>
+              <div dangerouslySetInnerHTML={{ __html: linkifyText(ev.attendees) }} style={{ color: '#64748B', fontSize: 10, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} />
             )}
           </>
         )}
         {isMultiDay && !isFirst && (
-          <div style={{ fontWeight: 600, color: `${ev.color}99`, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {ev.title}
-          </div>
+          <div dangerouslySetInnerHTML={{ __html: linkifyText(ev.title) }} style={{ fontWeight: 600, color: `${ev.color}99`, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} />
         )}
         {isFirst && (
           confirmDelete === ev.id ? (
@@ -535,7 +531,7 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
                                     </span>
                                   )}
                                   {ev.allDay && <span style={{ color: ev.color, flexShrink: 0 }}>●</span>}
-                                  {ev.title}
+                                  <span dangerouslySetInnerHTML={{ __html: linkifyText(ev.title) }} />
                                 </span>
                               )}
                             </div>

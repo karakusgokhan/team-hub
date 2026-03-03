@@ -64,6 +64,24 @@ export const getWeekDays = () => {
 };
 
 /**
+ * Linkify plain text: HTML-escapes input to prevent XSS, then wraps http/https
+ * URLs in <a> tags styled to match the HarmonyHub dark theme.
+ * Use with dangerouslySetInnerHTML={{ __html: linkifyText(value) }} on display elements.
+ */
+export function linkifyText(text) {
+  if (!text) return '';
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+  return escaped.replace(
+    /https?:\/\/[^\s<>"]+/g,
+    url => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#A5B4FC;text-decoration:underline;">${url}</a>`
+  );
+}
+
+/**
  * WhatsApp share helper — opens wa.me with pre-formatted text
  * User picks the group chat and hits send
  */

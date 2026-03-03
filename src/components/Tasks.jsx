@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TEAM_MEMBERS } from '../utils/config';
-import { todayStr } from '../utils/helpers';
+import { todayStr, linkifyText } from '../utils/helpers';
 import { airtableCreate, airtableUpdate } from '../utils/airtable';
 import { Avatar, PillBadge, WhatsAppButton } from './Shared';
 
@@ -42,8 +42,7 @@ export default function Tasks({ tasks, setTasks, currentUser, config, onWriteErr
     const next = STATUS_CYCLE[task.status];
     setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: next } : t));
     if (config?.apiKey && config?.baseId) {
-      const result = await airtableUpdate(config, 'Tasks', task.id, { Status: next });
-      if (!result) onWriteError?.('Status update failed to save to Airtable. Check the browser console (F12).');
+      await airtableUpdate(config, 'Tasks', task.id, { Status: next }, onWriteError);
     }
   };
 
@@ -73,14 +72,11 @@ export default function Tasks({ tasks, setTasks, currentUser, config, onWriteErr
         CreatedBy:  newTask.createdBy,
         Priority:   newTask.priority,
         Status:     'todo',
-        // Omit empty fields — Airtable rejects null/empty for Date and Long text fields
         ...(newTask.description ? { Description: newTask.description } : {}),
         ...(newTask.dueDate     ? { DueDate:     newTask.dueDate }     : {}),
-      });
+      }, onWriteError);
       if (result?.id) {
         setTasks(prev => prev.map(t => t.id === tempId ? { ...t, id: result.id } : t));
-      } else {
-        onWriteError?.('Task saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
       }
     }
   };
@@ -141,16 +137,14 @@ export default function Tasks({ tasks, setTasks, currentUser, config, onWriteErr
         </div>
 
         {/* Title */}
-        <div style={{ fontWeight: 700, fontSize: compact ? 13 : 14, color: '#E2E8F0', marginBottom: compact ? 6 : 8 }}>
-          {task.title}
-        </div>
+        <div dangerouslySetInnerHTML={{ __html: linkifyText(task.title) }} style={{ fontWeight: 700, fontSize: compact ? 13 : 14, color: '#E2E8F0', marginBottom: compact ? 6 : 8 }} />
 
         {/* Description — list only */}
         {!compact && task.description && (
-          <p style={{
+          <p dangerouslySetInnerHTML={{ __html: linkifyText(task.description) }} style={{
             margin: '0 0 10px', fontSize: 12, color: '#94A3B8', lineHeight: 1.5,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{task.description}</p>
+          }} />
         )}
 
         {/* Footer */}

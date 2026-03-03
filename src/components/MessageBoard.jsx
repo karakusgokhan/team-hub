@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CHANNELS } from '../utils/config';
-import { timeAgo, shareToWhatsApp } from '../utils/helpers';
+import { timeAgo, shareToWhatsApp, linkifyText } from '../utils/helpers';
 import { airtableCreate } from '../utils/airtable';
 import { Avatar, WhatsAppIcon } from './Shared';
 
@@ -23,17 +23,15 @@ export default function MessageBoard({ messages, setMessages, currentUser, confi
 
     if (config?.apiKey && config?.baseId) {
       const result = await airtableCreate(config, 'Messages', {
-        Person:    currentUser,
-        Text:      msg.text,
-        Channel:   channel,
-        Pinned:    false,
-        CreatedAt: msg.time,
-      });
+        Person:  currentUser,
+        Text:    msg.text,
+        Channel: channel,
+        Pinned:  false,
+        // CreatedAt is omitted — Airtable auto-populates it as a "Created time" field
+      }, onWriteError);
       if (result?.id) {
         // Replace temp id with real Airtable id
         setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, id: result.id } : m));
-      } else {
-        onWriteError?.('Message saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
       }
     }
   };
@@ -72,7 +70,7 @@ export default function MessageBoard({ messages, setMessages, currentUser, confi
               <Avatar name={m.person} size={24} />
               <div style={{ flex: 1 }}>
                 <span style={{ fontWeight: 600, fontSize: 13 }}>{m.person}: </span>
-                <span style={{ fontSize: 13, color: '#CBD5E1' }}>{m.text}</span>
+                <span dangerouslySetInnerHTML={{ __html: linkifyText(m.text) }} style={{ fontSize: 13, color: '#CBD5E1' }} />
               </div>
               <button onClick={() => shareToWhatsApp(`📌 *${m.person}:* ${m.text}`)} title="Share to WhatsApp" style={{
                 background: 'transparent', border: 'none', cursor: 'pointer', padding: 4,
@@ -135,7 +133,7 @@ export default function MessageBoard({ messages, setMessages, currentUser, confi
                 <span style={{ fontWeight: 600, fontSize: 14 }}>{m.person}</span>
                 <span style={{ fontSize: 11, color: '#475569', fontFamily: "'Space Mono', monospace" }}>{timeAgo(m.time)}</span>
               </div>
-              <p style={{ margin: 0, fontSize: 14, color: '#CBD5E1', lineHeight: 1.5, wordBreak: 'break-word' }}>{m.text}</p>
+              <p dangerouslySetInnerHTML={{ __html: linkifyText(m.text) }} style={{ margin: 0, fontSize: 14, color: '#CBD5E1', lineHeight: 1.5, wordBreak: 'break-word' }} />
             </div>
             <button
               onClick={() => shareToWhatsApp(`💬 *${m.person}:* ${m.text}`)}

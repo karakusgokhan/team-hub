@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TEAM_MEMBERS } from '../utils/config';
-import { getMonday, getSunday, offsetWeek } from '../utils/helpers';
+import { getMonday, getSunday, offsetWeek, linkifyText } from '../utils/helpers';
 import { airtableCreate, airtableUpdate, airtableFetch } from '../utils/airtable';
 import { Avatar, PriorityStatus, WhatsAppButton } from './Shared';
 
@@ -50,10 +50,6 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
     setLoadingWeek(true);
     const data = await airtableFetch(config, 'WeeklyPriorities', {
       filterByFormula: `{Week} = '${targetMonday}'`,
-      sort: JSON.stringify([
-        { field: 'Person',    direction: 'asc' },
-        { field: 'SortOrder', direction: 'asc' },
-      ]),
     });
     if (data?.records?.length > 0) {
       const fetched = data.records.map(r => ({
@@ -99,8 +95,7 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
       prev.map(p => p.id === record.id ? { ...p, status: next } : p)
     );
     if (config?.apiKey && config?.baseId) {
-      const result = await airtableUpdate(config, 'WeeklyPriorities', record.id, { Status: next });
-      if (!result) onWriteError?.('Status update failed to save to Airtable. Check the browser console (F12).');
+      await airtableUpdate(config, 'WeeklyPriorities', record.id, { Status: next }, onWriteError);
     }
   };
 
@@ -122,11 +117,10 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
     }));
 
     if (config?.apiKey && config?.baseId) {
-      const [r1, r2] = await Promise.all([
-        airtableUpdate(config, 'WeeklyPriorities', record.id,   { SortOrder: swapOrder }),
-        airtableUpdate(config, 'WeeklyPriorities', swapItem.id, { SortOrder: newOrder }),
+      await Promise.all([
+        airtableUpdate(config, 'WeeklyPriorities', record.id,   { SortOrder: swapOrder }, onWriteError),
+        airtableUpdate(config, 'WeeklyPriorities', swapItem.id, { SortOrder: newOrder },  onWriteError),
       ]);
-      if (!r1 || !r2) onWriteError?.('Reorder failed to save to Airtable. Check the browser console (F12).');
     }
   };
 
@@ -154,11 +148,9 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
         Priority:  newRecord.priority,
         Status:    'todo',
         SortOrder: nextOrder,
-      });
+      }, onWriteError);
       if (result?.id) {
         setPriorities(prev => prev.map(p => p.id === tempId ? { ...p, id: result.id } : p));
-      } else {
-        onWriteError?.('Priority saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
       }
     }
   };
@@ -389,14 +381,15 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
                       </button>
 
                       {/* Priority text — strike through when done */}
-                      <span style={{
-                        flex: 1, fontSize: 14,
-                        color: item.status === 'done' ? '#475569' : '#E2E8F0',
-                        textDecoration: item.status === 'done' ? 'line-through' : 'none',
-                        transition: 'all 0.2s',
-                      }}>
-                        {item.priority}
-                      </span>
+                      <span
+                        dangerouslySetInnerHTML={{ __html: linkifyText(item.priority) }}
+                        style={{
+                          flex: 1, fontSize: 14,
+                          color: item.status === 'done' ? '#475569' : '#E2E8F0',
+                          textDecoration: item.status === 'done' ? 'line-through' : 'none',
+                          transition: 'all 0.2s',
+                        }}
+                      />
 
                       {/* Status label */}
                       <span style={{ fontSize: 11, color: '#475569', fontFamily: "'Space Mono', monospace", flexShrink: 0 }}>

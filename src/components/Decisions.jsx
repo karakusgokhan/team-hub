@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { todayStr } from '../utils/helpers';
+import { todayStr, linkifyText } from '../utils/helpers';
 import { airtableCreate, airtableUpdate } from '../utils/airtable';
 import { Avatar, CategoryBadge, PillBadge, WhatsAppButton } from './Shared';
 
@@ -36,8 +36,7 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
       prev.map(d => d.id === decision.id ? { ...d, status: next } : d)
     );
     if (config?.apiKey && config?.baseId) {
-      const result = await airtableUpdate(config, 'Decisions', decision.id, { Status: next });
-      if (!result) onWriteError?.('Status update failed to save to Airtable. Check the browser console (F12).');
+      await airtableUpdate(config, 'Decisions', decision.id, { Status: next }, onWriteError);
     }
   };
 
@@ -66,13 +65,10 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
         Date:      newDecision.date,
         Category:  newDecision.category,
         Status:    'active',
-        // Omit empty Description — Airtable Long text fields may reject empty strings
         ...(newDecision.description ? { Description: newDecision.description } : {}),
-      });
+      }, onWriteError);
       if (result?.id) {
         setDecisions(prev => prev.map(d => d.id === tempId ? { ...d, id: result.id } : d));
-      } else {
-        onWriteError?.('Decision saved locally but failed to write to Airtable. Check the browser console (F12) for the error details — likely a field name mismatch.');
       }
     }
   };
@@ -263,16 +259,14 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
                 </div>
 
                 {/* Title */}
-                <div style={{ fontWeight: 700, fontSize: 15, color: '#E2E8F0', marginBottom: 6 }}>
-                  {d.title}
-                </div>
+                <div dangerouslySetInnerHTML={{ __html: linkifyText(d.title) }} style={{ fontWeight: 700, fontSize: 15, color: '#E2E8F0', marginBottom: 6 }} />
 
                 {/* Description */}
                 {d.description && (
-                  <p style={{
+                  <p dangerouslySetInnerHTML={{ __html: linkifyText(d.description) }} style={{
                     margin: '0 0 12px', fontSize: 13, color: '#94A3B8', lineHeight: 1.6,
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                  }}>{d.description}</p>
+                  }} />
                 )}
 
                 {/* Footer */}

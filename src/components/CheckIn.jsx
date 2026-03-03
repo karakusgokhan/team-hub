@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TEAM_MEMBERS } from '../utils/config';
-import { todayStr } from '../utils/helpers';
+import { todayStr, linkifyText } from '../utils/helpers';
 import { airtableCreate, airtableUpdate } from '../utils/airtable';
 import { Avatar, StatusBadge, WhatsAppButton } from './Shared';
 
@@ -195,7 +195,7 @@ export default function CheckIn({ checkins, setCheckins, currentUser, config, on
               {ci ? (
                 <>
                   <StatusBadge status={ci.status} />
-                  {ci.note && <span style={{ fontSize: 12, color: '#94A3B8', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ci.note}</span>}
+                  {ci.note && <span dangerouslySetInnerHTML={{ __html: linkifyText(ci.note) }} style={{ fontSize: 12, color: '#94A3B8', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} />}
                   <span style={{ fontSize: 11, color: '#475569', fontFamily: "'Space Mono', monospace" }}>{ci.time}</span>
                 </>
               ) : (
