@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { todayStr, linkifyText } from '../utils/helpers';
+import { todayStr, linkifyText, shareToWhatsApp, APP_URL } from '../utils/helpers';
 import { airtableCreate, airtableUpdate, airtableDelete } from '../utils/airtable';
-import { Avatar, CategoryBadge, PillBadge, WhatsAppButton } from './Shared';
+import { Avatar, CategoryBadge, PillBadge, WhatsAppButton, WhatsAppIcon } from './Shared';
 
 const CATEGORY_COLORS = {
   product:    '#6366F1',
@@ -137,18 +137,33 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
     })
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
+  const fmtDecisionDate = (dateStr) => {
+    if (!dateStr) return 'Unknown date';
+    const d = new Date(dateStr + 'T12:00:00');
+    return isNaN(d) ? 'Unknown date' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const buildDecisionShareText = (d) => {
+    const icon = d.status === 'active' ? '✅' : d.status === 'revised' ? '🔄' : '❌';
+    const ss = STATUS_STYLES[d.status] || STATUS_STYLES.active;
+    const lines = [
+      `📋 *Decision: ${d.title || 'Untitled'}*`,
+      d.description ? d.description : null,
+      `Category: ${d.category || 'general'} · Status: ${ss.label}`,
+      `By ${d.decidedBy || 'Unknown'} | ${fmtDecisionDate(d.date)}`,
+      `\n🔗 ${APP_URL}/#decisions`,
+    ].filter(Boolean);
+    return `${icon} ${lines.join('\n')}`;
+  };
+
   const buildWhatsAppText = () => {
     const lines = visible.map(d => {
       const icon = d.status === 'active' ? '✅' : d.status === 'revised' ? '🔄' : '❌';
-      return `${icon} [${d.category}] *${d.title}*\n   By ${d.decidedBy} | ${new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      return `${icon} [${d.category || 'general'}] *${d.title || 'Untitled'}*\n   By ${d.decidedBy || 'Unknown'} | ${fmtDecisionDate(d.date)}`;
     }).join('\n\n');
-    return `📋 *Decision Log*\n\n${lines}`;
+    return `📋 *Decision Log*\n\n${lines || 'No decisions recorded.'}\n\n🔗 ${APP_URL}/#decisions`;
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
 
   return (
     <div style={{ animation: 'slideIn 0.3s ease' }}>
@@ -414,9 +429,18 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
                 {/* Footer */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Avatar name={d.decidedBy} size={20} />
-                  <span style={{ fontSize: 12, color: '#64748B' }}>
-                    {d.decidedBy} · {formatDate(d.date)}
+                  <span style={{ fontSize: 12, color: '#64748B', flex: 1 }}>
+                    {d.decidedBy || 'Unknown'} · {fmtDecisionDate(d.date)}
                   </span>
+                  <button
+                    onClick={e => { e.stopPropagation(); shareToWhatsApp(buildDecisionShareText(d)); }}
+                    title="Share to WhatsApp"
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4, opacity: 0.4, transition: 'opacity 0.2s', flexShrink: 0 }}
+                    onMouseOver={e => e.currentTarget.style.opacity = 1}
+                    onMouseOut={e => e.currentTarget.style.opacity = 0.4}
+                  >
+                    <WhatsAppIcon size={13} color="#25D366" />
+                  </button>
                 </div>
               </div>
             );

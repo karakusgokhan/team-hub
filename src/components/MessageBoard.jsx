@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
 import { CHANNELS } from '../utils/config';
-import { timeAgo, shareToWhatsApp, linkifyText } from '../utils/helpers';
+import { timeAgo, shareToWhatsApp, linkifyText, APP_URL } from '../utils/helpers';
 import { airtableCreate, airtableUpdate, airtableDelete } from '../utils/airtable';
 import { Avatar, WhatsAppIcon } from './Shared';
+
+const buildMessageShareText = (m) => {
+  const icon = m.pinned ? '📌' : '💬';
+  const channelTag = m.channel ? ` [#${m.channel}]` : '';
+  const lines = [
+    `${icon} *${m.person}*${channelTag}`,
+    m.text,
+    ``,
+    `🔗 ${APP_URL}/#board`,
+  ];
+  return lines.join('\n');
+};
 
 export default function MessageBoard({ messages, setMessages, currentUser, config, onWriteError }) {
   const [channel,        setChannel]        = useState('general');
@@ -111,7 +123,7 @@ export default function MessageBoard({ messages, setMessages, currentUser, confi
                 {isOwner && (
                   <span style={{ fontSize: 10, color: '#475569', flexShrink: 0, alignSelf: 'center' }}>✏</span>
                 )}
-                <button onClick={(e) => { e.stopPropagation(); shareToWhatsApp(`📌 *${m.person}:* ${m.text}`); }} title="Share to WhatsApp" style={{
+                <button onClick={(e) => { e.stopPropagation(); shareToWhatsApp(buildMessageShareText(m)); }} title="Share to WhatsApp" style={{
                   background: 'transparent', border: 'none', cursor: 'pointer', padding: 4,
                   opacity: 0.5, flexShrink: 0
                 }}>
@@ -246,7 +258,7 @@ export default function MessageBoard({ messages, setMessages, currentUser, confi
                 <p dangerouslySetInnerHTML={{ __html: linkifyText(m.text) }} style={{ margin: 0, fontSize: 14, color: '#CBD5E1', lineHeight: 1.5, wordBreak: 'break-word' }} />
               </div>
               <button
-                onClick={(e) => { e.stopPropagation(); shareToWhatsApp(`💬 *${m.person}:* ${m.text}`); }}
+                onClick={(e) => { e.stopPropagation(); shareToWhatsApp(buildMessageShareText(m)); }}
                 title="Share to WhatsApp"
                 style={{
                   background: 'transparent', border: 'none', cursor: 'pointer', padding: 6,

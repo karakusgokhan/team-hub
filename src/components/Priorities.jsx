@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { TEAM_MEMBERS } from '../utils/config';
-import { getMonday, getSunday, offsetWeek, linkifyText } from '../utils/helpers';
+import { getMonday, getSunday, offsetWeek, linkifyText, shareToWhatsApp, APP_URL } from '../utils/helpers';
 import { airtableCreate, airtableUpdate, airtableFetch } from '../utils/airtable';
-import { Avatar, PriorityStatus, WhatsAppButton } from './Shared';
+import { Avatar, PriorityStatus, WhatsAppButton, WhatsAppIcon } from './Shared';
 
 const STATUS_CYCLE = { todo: 'in-progress', 'in-progress': 'done', done: 'todo' };
 
@@ -155,16 +155,24 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
     }
   };
 
+  const priorityStatusIcon = (status) =>
+    status === 'done' ? '✅' : status === 'in-progress' ? '🔄' : '⬜';
+
+  const buildPriorityShareText = (item) => [
+    `🎯 *Priority: ${item.priority}*`,
+    `${item.person} · Status: ${item.status.replace('-', ' ')}`,
+    `\n🔗 ${APP_URL}/#priorities`,
+  ].join('\n');
+
   const buildWhatsAppText = () => {
-    const icons = { done: '✅', 'in-progress': '🔄', todo: '⬜' };
     const weekStr = new Date(viewedWeek + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const lines = TEAM_MEMBERS.map(m => {
       const items = grouped[m.name] || [];
       if (items.length === 0) return null;
-      const itemLines = items.map(p => `  ${icons[p.status]} ${p.priority}`).join('\n');
+      const itemLines = items.map(p => `  ${priorityStatusIcon(p.status)} ${p.priority}`).join('\n');
       return `*${m.name}*\n${itemLines}`;
     }).filter(Boolean).join('\n\n');
-    return `🎯 *Weekly Priorities — Week of ${weekStr}*\n\n${lines || 'No priorities recorded.'}`;
+    return `🎯 *Weekly Priorities — Week of ${weekStr}*\n\n${lines || 'No priorities recorded.'}\n\n🔗 ${APP_URL}/#priorities`;
   };
 
   const getProgress = (name) => {
@@ -395,6 +403,17 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
                       <span style={{ fontSize: 11, color: '#475569', fontFamily: "'Space Mono', monospace", flexShrink: 0 }}>
                         {item.status.replace('-', ' ')}
                       </span>
+
+                      {/* Per-item WhatsApp share */}
+                      <button
+                        onClick={() => shareToWhatsApp(buildPriorityShareText(item))}
+                        title="Share to WhatsApp"
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 2px', opacity: 0.3, transition: 'opacity 0.2s', flexShrink: 0 }}
+                        onMouseOver={e => e.currentTarget.style.opacity = 1}
+                        onMouseOut={e => e.currentTarget.style.opacity = 0.3}
+                      >
+                        <WhatsAppIcon size={12} color="#25D366" />
+                      </button>
 
                       {/* Up/Down arrows — only for currentUser on current week */}
                       {isMe && isCurrentWeek && (

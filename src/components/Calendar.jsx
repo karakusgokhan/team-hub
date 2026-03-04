@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { dayNames, monthNames, todayStr, getMonday, getWeekDays, linkifyText } from '../utils/helpers';
+import { dayNames, monthNames, todayStr, getMonday, getWeekDays, linkifyText, shareToWhatsApp, APP_URL } from '../utils/helpers';
 import { airtableCreate, airtableUpdate, airtableDelete } from '../utils/airtable';
 import { WhatsAppButton } from './Shared';
 import { TEAM_MEMBERS } from '../utils/config';
@@ -286,6 +286,26 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
     }
   };
 
+  const fmtEventDate = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
+  const buildEventShareText = (ev) => {
+    const isMultiDay = ev.endDate && ev.endDate !== ev.date;
+    const dateStr = isMultiDay
+      ? `${fmtEventDate(ev.date)} → ${fmtEventDate(ev.endDate)}`
+      : fmtEventDate(ev.date);
+    const lines = [
+      `📅 *${ev.title}*`,
+      dateStr,
+      ev.allDay ? 'All day' : `${ev.time} · ${ev.duration} min`,
+      ev.attendees ? `Attendees: ${ev.attendees}` : null,
+      `\n🔗 ${APP_URL}/#calendar`,
+    ].filter(Boolean);
+    return lines.join('\n');
+  };
+
   const buildWhatsAppText = () => {
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const lines = dayLabels.map((label, i) => {
@@ -300,7 +320,7 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
       return `*${label}:*\n${evts}`;
     }).join('\n\n');
     const weekStr = new Date(getMonday(now)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `📅 *Team Schedule - Week of ${weekStr}*\n\n${lines}`;
+    return `📅 *Team Schedule - Week of ${weekStr}*\n\n${lines}\n\n🔗 ${APP_URL}/#calendar`;
   };
 
   // ── Week view helpers ──────────────────────────────────────────────────────
@@ -370,14 +390,21 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
               }}>Cancel</button>
             </div>
           ) : (
-            <button
-              onClick={e => { e.stopPropagation(); setConfirmDelete(ev.id); }}
-              style={{
-                position: 'absolute', top: 5, right: 5,
-                background: 'transparent', border: 'none', color: '#475569',
-                cursor: 'pointer', fontSize: 11, padding: '0 2px', lineHeight: 1, opacity: 0.6,
-              }}
-            >✕</button>
+            <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', alignItems: 'center', gap: 2 }} onClick={e => e.stopPropagation()}>
+              <button
+                onClick={e => { e.stopPropagation(); shareToWhatsApp(buildEventShareText(ev)); }}
+                title="Share to WhatsApp"
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 1px', opacity: 0.45, lineHeight: 1 }}
+                onMouseOver={e => e.currentTarget.style.opacity = 1}
+                onMouseOut={e => e.currentTarget.style.opacity = 0.45}
+              >
+                <WhatsAppIcon size={10} color="#25D366" />
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); setConfirmDelete(ev.id); }}
+                style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 11, padding: '0 1px', lineHeight: 1, opacity: 0.6 }}
+              >✕</button>
+            </div>
           )
         )}
       </div>

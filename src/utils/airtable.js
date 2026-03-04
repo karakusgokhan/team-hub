@@ -50,7 +50,14 @@ export async function airtableFetch(config, table, params = {}) {
 
   const url = new URL(`${AIRTABLE_API}/${config.baseId}/${encodeURIComponent(table)}`);
   Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') {
+    if (v === undefined || v === null || v === '') return;
+    // Airtable sort must use bracket notation: sort[0][field]=X&sort[0][direction]=asc
+    if (k === 'sort' && Array.isArray(v)) {
+      v.forEach((s, i) => {
+        url.searchParams.append(`sort[${i}][field]`,     s.field);
+        url.searchParams.append(`sort[${i}][direction]`, s.direction);
+      });
+    } else {
       url.searchParams.append(k, String(v));
     }
   });
@@ -72,8 +79,9 @@ export async function airtableFetch(config, table, params = {}) {
 
 /**
  * Create a record in Airtable
+ * @param {function} [onError] Optional callback called with the error message string on failure
  */
-export async function airtableCreate(config, table, fields) {
+export async function airtableCreate(config, table, fields, onError) {
   if (!config.apiKey || !config.baseId) return null;
 
   console.log(`[Airtable] Creating record in ${table}:`, JSON.stringify(fields, null, 2));
@@ -92,22 +100,26 @@ export async function airtableCreate(config, table, fields) {
     );
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      const msg = err?.error?.message || `HTTP ${res.status}`;
       console.error(`[Airtable] Create in ${table} failed (HTTP ${res.status}):`, JSON.stringify(err, null, 2));
-      throw new Error(err?.error?.message || `Airtable create error: ${res.status}`);
+      onError?.(`${table}: ${msg}`);
+      return null;
     }
     const data = await res.json();
     console.log(`[Airtable] Created record in ${table} — id: ${data.id}`);
     return data;
   } catch (e) {
     console.error(`[Airtable] Create in ${table} exception:`, e.message);
+    onError?.(`${table}: ${e.message}`);
     return null;
   }
 }
 
 /**
  * Update a record in Airtable
+ * @param {function} [onError] Optional callback called with the error message string on failure
  */
-export async function airtableUpdate(config, table, recordId, fields) {
+export async function airtableUpdate(config, table, recordId, fields, onError) {
   if (!config.apiKey || !config.baseId) return null;
 
   console.log(`[Airtable] Updating ${table} / ${recordId}:`, JSON.stringify(fields, null, 2));
@@ -126,12 +138,15 @@ export async function airtableUpdate(config, table, recordId, fields) {
     );
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      const msg = err?.error?.message || `HTTP ${res.status}`;
       console.error(`[Airtable] Update in ${table} failed (HTTP ${res.status}):`, JSON.stringify(err, null, 2));
-      throw new Error(err?.error?.message || `Airtable update error: ${res.status}`);
+      onError?.(`${table}: ${msg}`);
+      return null;
     }
     return await res.json();
   } catch (e) {
     console.error(`[Airtable] Update in ${table} exception:`, e.message);
+    onError?.(`${table}: ${e.message}`);
     return null;
   }
 }

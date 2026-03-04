@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { TEAM_MEMBERS } from '../utils/config';
-import { todayStr, linkifyText } from '../utils/helpers';
+import { todayStr, linkifyText, shareToWhatsApp, APP_URL } from '../utils/helpers';
 import { airtableCreate, airtableUpdate, airtableDelete } from '../utils/airtable';
-import { Avatar, PillBadge, WhatsAppButton } from './Shared';
+import { Avatar, PillBadge, WhatsAppButton, WhatsAppIcon } from './Shared';
 
 const PRIORITY_STYLES = {
   low:    { bg: 'rgba(100,116,139,0.2)', color: '#94A3B8', label: 'Low' },
@@ -158,13 +158,28 @@ export default function Tasks({ tasks, setTasks, currentUser, config, onWriteErr
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const taskStatusIcon = (status) =>
+    status === 'done' ? '✅' : status === 'in-progress' ? '🔄' : status === 'blocked' ? '🚫' : '⬜';
+
+  const buildTaskShareText = (t) => {
+    const ps = PRIORITY_STYLES[t.priority] || PRIORITY_STYLES.medium;
+    const ss = STATUS_STYLES[t.status] || STATUS_STYLES.todo;
+    const lines = [
+      `${taskStatusIcon(t.status)} *Task: ${t.title || 'Untitled'}*`,
+      t.description ? t.description : null,
+      `Assigned to: ${t.assignedTo || 'Unassigned'} · Priority: ${ps.label}`,
+      `Status: ${ss.label}${t.dueDate ? ` · Due ${formatDue(t.dueDate)}` : ''}`,
+      `\n🔗 ${APP_URL}/#tasks`,
+    ].filter(Boolean);
+    return lines.join('\n');
+  };
+
   const buildWhatsAppText = () => {
     const lines = filteredTasks.map(t => {
-      const icon = t.status === 'done' ? '✅' : t.status === 'in-progress' ? '🔄' : t.status === 'blocked' ? '🚫' : '⬜';
       const due = t.dueDate ? ` | Due ${formatDue(t.dueDate)}` : '';
-      return `${icon} *${t.title}*\n   > ${t.assignedTo}${due}`;
+      return `${taskStatusIcon(t.status)} *${t.title || 'Untitled'}*\n   > ${t.assignedTo || 'Unassigned'}${due}`;
     }).join('\n\n');
-    return `📋 *Task Tracker*\n\n${lines}`;
+    return `📋 *Task Tracker*\n\n${lines || 'No tasks found.'}\n\n🔗 ${APP_URL}/#tasks`;
   };
 
   const segBtn = (active) => ({
@@ -226,6 +241,15 @@ export default function Tasks({ tasks, setTasks, currentUser, config, onWriteErr
               <span style={{ color: overdue ? '#FCA5A5' : '#64748B' }}> · Due {formatDue(task.dueDate)}</span>
             )}
           </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); shareToWhatsApp(buildTaskShareText(task)); }}
+            title="Share to WhatsApp"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 4px', opacity: 0.35, transition: 'opacity 0.2s', flexShrink: 0 }}
+            onMouseOver={e => e.currentTarget.style.opacity = 1}
+            onMouseOut={e => e.currentTarget.style.opacity = 0.35}
+          >
+            <WhatsAppIcon size={13} color="#25D366" />
+          </button>
           <button
             onClick={(e) => handleStatusChange(task, e)}
             style={{

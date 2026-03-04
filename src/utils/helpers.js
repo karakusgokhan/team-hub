@@ -81,6 +81,9 @@ export function linkifyText(text) {
   );
 }
 
+/** Deployed app URL — used to build deep links in WhatsApp shares */
+export const APP_URL = 'https://karakusgokhan.github.io/team-hub';
+
 /**
  * WhatsApp share helper — opens wa.me with pre-formatted text
  * User picks the group chat and hits send
