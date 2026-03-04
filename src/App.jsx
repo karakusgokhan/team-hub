@@ -32,7 +32,6 @@ export default function App() {
     const rawHash = window.location.hash;
     const hash = rawHash.slice(1);
     const matched = TABS.find(t => t.id === hash);
-    console.log('[HH] init | raw hash:', JSON.stringify(rawHash), '| stripped:', JSON.stringify(hash), '| matched tab:', matched?.id ?? 'none → defaulting to checkin');
     return matched ? hash : 'checkin';
   });
   const [config, setConfig] = useState(() => {
@@ -83,11 +82,6 @@ export default function App() {
     });
     if (!eventsData) return; // network error — keep existing state
 
-    console.log('[Calendar] Raw records from Airtable:', eventsData.records.map(r => ({
-      id: r.id,
-      fields: r.fields,
-    })));
-
     const mapped = eventsData.records
       .filter(r => r.fields.Title || r.fields.Date) // skip completely empty ghost rows
       .map(r => {
@@ -113,7 +107,6 @@ export default function App() {
         };
       });
 
-    console.log('[Calendar] Mapped events for UI:', mapped);
     // Events with no date will stay in state but won't match any calendar cell —
     // the week view only processes Mon–Fri and the month view checks date strings.
     setCalendarEvents(mapped);
@@ -126,9 +119,7 @@ export default function App() {
   // cycle and avoiding the React 18 batching issue where a [activeTab] effect
   // could be skipped when Airtable state updates land in the same commit.
   useEffect(() => {
-    const target = window.location.pathname + '#' + activeTab;
-    console.log('[HH] mount effect | setting initial hash to:', target);
-    window.history.replaceState(null, '', target);
+    window.history.replaceState(null, '', window.location.pathname + '#' + activeTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally empty — only runs on mount
 
@@ -430,13 +421,11 @@ export default function App() {
       }}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => {
-            console.log('[HH] tab clicked | tab.id:', tab.id, '| tab.label:', tab.label, '| current activeTab:', activeTab);
             // Call replaceState synchronously here — do NOT rely on a
             // useEffect([activeTab]) for this. React 18 concurrent batching
             // can skip that effect when Airtable state updates land in the
             // same commit as the tab-state change (reproduces from #decisions).
             window.history.replaceState(null, '', window.location.pathname + '#' + tab.id);
-            console.log('[HH] replaceState done immediately | hash is now:', window.location.hash);
             setActiveTab(tab.id);
           }} style={{
             padding: 'clamp(8px, 2vw, 10px) clamp(10px, 3vw, 18px)',
