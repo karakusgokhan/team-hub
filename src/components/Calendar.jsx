@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { dayNames, monthNames, todayStr, getMonday, getWeekDays, linkifyText, shareToWhatsApp, APP_URL } from '../utils/helpers';
 import { airtableCreate, airtableUpdate, airtableDelete } from '../utils/airtable';
-import { WhatsAppButton } from './Shared';
+import { WhatsAppButton, WhatsAppIcon } from './Shared';
 import { TEAM_MEMBERS } from '../utils/config';
 
 const EVENT_COLORS = [
