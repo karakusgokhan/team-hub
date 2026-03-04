@@ -26,6 +26,7 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
   const [showForm,        setShowForm]        = useState(false);
   const [editingDecision, setEditingDecision] = useState(null);
   const [confirmDelete,   setConfirmDelete]   = useState(null);
+  const [expandedIds,     setExpandedIds]     = useState(new Set());
   const [filterCategory,  setFilterCategory]  = useState('all');
   const [searchQuery,     setSearchQuery]     = useState('');
   const [formTitle,       setFormTitle]       = useState('');
@@ -202,7 +203,7 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
               value={formDescription}
               onChange={e => setFormDescription(e.target.value)}
               placeholder="Context, rationale, or notes..."
-              rows={3}
+              rows={5}
               style={{
                 width: '100%', padding: '10px 14px',
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
@@ -371,12 +372,44 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
                 <div dangerouslySetInnerHTML={{ __html: linkifyText(d.title) }} style={{ fontWeight: 700, fontSize: 15, color: '#E2E8F0', marginBottom: 6 }} />
 
                 {/* Description */}
-                {d.description && (
-                  <p dangerouslySetInnerHTML={{ __html: linkifyText(d.description) }} style={{
-                    margin: '0 0 12px', fontSize: 13, color: '#94A3B8', lineHeight: 1.6,
-                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                  }} />
-                )}
+                {d.description && (() => {
+                  const isLong = d.description.length > 180 || d.description.split('\n').length > 3;
+                  const isExpanded = expandedIds.has(d.id);
+                  return (
+                    <div style={{ marginBottom: 12 }}>
+                      <p
+                        dangerouslySetInnerHTML={{ __html: linkifyText(d.description) }}
+                        style={{
+                          margin: 0, fontSize: 13, color: '#94A3B8', lineHeight: 1.6,
+                          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                          ...(isLong && !isExpanded ? {
+                            display: '-webkit-box', WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                          } : {}),
+                        }}
+                      />
+                      {isLong && (
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setExpandedIds(prev => {
+                              const next = new Set(prev);
+                              isExpanded ? next.delete(d.id) : next.add(d.id);
+                              return next;
+                            });
+                          }}
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: '#6366F1', fontSize: 12, fontWeight: 600,
+                            padding: '4px 0 0', marginTop: 2,
+                          }}
+                        >
+                          {isExpanded ? 'Show less ▲' : 'Show more ▼'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Footer */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
