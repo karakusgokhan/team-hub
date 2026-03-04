@@ -5,15 +5,9 @@ import { airtableCreate, airtableUpdate, airtableDelete } from '../utils/airtabl
 import { Avatar, WhatsAppIcon } from './Shared';
 
 const buildMessageShareText = (m) => {
-  const icon = m.pinned ? '📌' : '💬';
+  const tag = m.pinned ? '[Pinned]' : '[message]';
   const channelTag = m.channel ? ` [#${m.channel}]` : '';
-  const lines = [
-    `${icon} *${m.person}*${channelTag}`,
-    m.text,
-    ``,
-    `🔗 ${APP_URL}/#board`,
-  ];
-  return lines.join('\n');
+  return `${tag} *${m.person}*${channelTag}\n${m.text}\n\nLink: ${APP_URL}/#board`;
 };
 
 export default function MessageBoard({ messages, setMessages, currentUser, config, onWriteError }) {

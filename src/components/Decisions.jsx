@@ -144,24 +144,22 @@ export default function Decisions({ decisions, setDecisions, currentUser, config
   };
 
   const buildDecisionShareText = (d) => {
-    const icon = d.status === 'active' ? '✅' : d.status === 'revised' ? '🔄' : '❌';
     const ss = STATUS_STYLES[d.status] || STATUS_STYLES.active;
-    const lines = [
-      `📋 *Decision: ${d.title || 'Untitled'}*`,
-      d.description ? d.description : null,
-      `Category: ${d.category || 'general'} · Status: ${ss.label}`,
+    const parts = [
+      `[Decision] *${d.title || 'Untitled'}*`,
+      ...(d.description ? [d.description] : []),
+      `Category: ${d.category || 'general'} - Status: ${ss.label}`,
       `By ${d.decidedBy || 'Unknown'} | ${fmtDecisionDate(d.date)}`,
-      `\n🔗 ${APP_URL}/#decisions`,
-    ].filter(Boolean);
-    return `${icon} ${lines.join('\n')}`;
+    ];
+    return `${parts.join('\n')}\n\nLink: ${APP_URL}/#decisions`;
   };
 
   const buildWhatsAppText = () => {
-    const lines = visible.map(d => {
-      const icon = d.status === 'active' ? '✅' : d.status === 'revised' ? '🔄' : '❌';
-      return `${icon} [${d.category || 'general'}] *${d.title || 'Untitled'}*\n   By ${d.decidedBy || 'Unknown'} | ${fmtDecisionDate(d.date)}`;
-    }).join('\n\n');
-    return `📋 *Decision Log*\n\n${lines || 'No decisions recorded.'}\n\n🔗 ${APP_URL}/#decisions`;
+    const statusLabel = (s) => s === 'active' ? '[active]' : s === 'revised' ? '[revised]' : '[reversed]';
+    const lines = visible.map(d =>
+      `${statusLabel(d.status)} [${d.category || 'general'}] *${d.title || 'Untitled'}*\n   By ${d.decidedBy || 'Unknown'} | ${fmtDecisionDate(d.date)}`
+    ).join('\n\n');
+    return `*Decision Log*\n\n${lines || 'No decisions recorded.'}\n\nLink: ${APP_URL}/#decisions`;
   };
 
 

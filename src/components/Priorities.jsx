@@ -156,13 +156,10 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
   };
 
   const priorityStatusIcon = (status) =>
-    status === 'done' ? '✅' : status === 'in-progress' ? '🔄' : '⬜';
+    status === 'done' ? '[done]' : status === 'in-progress' ? '[in progress]' : '[ ]';
 
-  const buildPriorityShareText = (item) => [
-    `🎯 *Priority: ${item.priority}*`,
-    `${item.person} · Status: ${item.status.replace('-', ' ')}`,
-    `\n🔗 ${APP_URL}/#priorities`,
-  ].join('\n');
+  const buildPriorityShareText = (item) =>
+    `*Priority: ${item.priority}*\n${item.person} - Status: ${item.status.replace('-', ' ')}\n\nLink: ${APP_URL}/#priorities`;
 
   const buildWhatsAppText = () => {
     const weekStr = new Date(viewedWeek + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -172,7 +169,7 @@ export default function Priorities({ priorities, setPriorities, currentUser, con
       const itemLines = items.map(p => `  ${priorityStatusIcon(p.status)} ${p.priority}`).join('\n');
       return `*${m.name}*\n${itemLines}`;
     }).filter(Boolean).join('\n\n');
-    return `🎯 *Weekly Priorities — Week of ${weekStr}*\n\n${lines || 'No priorities recorded.'}\n\n🔗 ${APP_URL}/#priorities`;
+    return `*Weekly Priorities - Week of ${weekStr}*\n\n${lines || 'No priorities recorded.'}\n\nLink: ${APP_URL}/#priorities`;
   };
 
   const getProgress = (name) => {

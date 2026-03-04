@@ -294,16 +294,15 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
   const buildEventShareText = (ev) => {
     const isMultiDay = ev.endDate && ev.endDate !== ev.date;
     const dateStr = isMultiDay
-      ? `${fmtEventDate(ev.date)} → ${fmtEventDate(ev.endDate)}`
+      ? `${fmtEventDate(ev.date)} to ${fmtEventDate(ev.endDate)}`
       : fmtEventDate(ev.date);
-    const lines = [
-      `📅 *${ev.title}*`,
+    const parts = [
+      `*${ev.title}*`,
       dateStr,
-      ev.allDay ? 'All day' : `${ev.time} · ${ev.duration} min`,
-      ev.attendees ? `Attendees: ${ev.attendees}` : null,
-      `\n🔗 ${APP_URL}/#calendar`,
-    ].filter(Boolean);
-    return lines.join('\n');
+      ev.allDay ? 'All day' : `${ev.time} - ${ev.duration} min`,
+      ...(ev.attendees ? [`Attendees: ${ev.attendees}`] : []),
+    ];
+    return `${parts.join('\n')}\n\nLink: ${APP_URL}/#calendar`;
   };
 
   const buildWhatsAppText = () => {
@@ -314,13 +313,13 @@ export default function Calendar({ events, setEvents, currentUser, config, onWri
       if (dayEvents.length === 0) return `*${label}:* No events`;
       const evts = dayEvents.map(e =>
         e.allDay
-          ? `  📅 [All day] ${e.title}${e.attendees ? ' (' + e.attendees + ')' : ''}`
-          : `  📅 ${e.time} - ${e.title}${e.attendees ? ' (' + e.attendees + ')' : ''}`
+          ? `  [All day] ${e.title}${e.attendees ? ' (' + e.attendees + ')' : ''}`
+          : `  ${e.time} - ${e.title}${e.attendees ? ' (' + e.attendees + ')' : ''}`
       ).join('\n');
       return `*${label}:*\n${evts}`;
     }).join('\n\n');
     const weekStr = new Date(getMonday(now)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `📅 *Team Schedule - Week of ${weekStr}*\n\n${lines}\n\n🔗 ${APP_URL}/#calendar`;
+    return `*Team Schedule - Week of ${weekStr}*\n\n${lines}\n\nLink: ${APP_URL}/#calendar`;
   };
 
   // ── Week view helpers ──────────────────────────────────────────────────────

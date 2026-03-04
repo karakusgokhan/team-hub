@@ -159,19 +159,18 @@ export default function Tasks({ tasks, setTasks, currentUser, config, onWriteErr
   };
 
   const taskStatusIcon = (status) =>
-    status === 'done' ? '✅' : status === 'in-progress' ? '🔄' : status === 'blocked' ? '🚫' : '⬜';
+    status === 'done' ? '[done]' : status === 'in-progress' ? '[in progress]' : status === 'blocked' ? '[blocked]' : '[ ]';
 
   const buildTaskShareText = (t) => {
     const ps = PRIORITY_STYLES[t.priority] || PRIORITY_STYLES.medium;
     const ss = STATUS_STYLES[t.status] || STATUS_STYLES.todo;
-    const lines = [
+    const parts = [
       `${taskStatusIcon(t.status)} *Task: ${t.title || 'Untitled'}*`,
-      t.description ? t.description : null,
-      `Assigned to: ${t.assignedTo || 'Unassigned'} · Priority: ${ps.label}`,
-      `Status: ${ss.label}${t.dueDate ? ` · Due ${formatDue(t.dueDate)}` : ''}`,
-      `\n🔗 ${APP_URL}/#tasks`,
-    ].filter(Boolean);
-    return lines.join('\n');
+      ...(t.description ? [t.description] : []),
+      `Assigned to: ${t.assignedTo || 'Unassigned'} - Priority: ${ps.label}`,
+      `Status: ${ss.label}${t.dueDate ? ` - Due ${formatDue(t.dueDate)}` : ''}`,
+    ];
+    return `${parts.join('\n')}\n\nLink: ${APP_URL}/#tasks`;
   };
 
   const buildWhatsAppText = () => {
@@ -179,7 +178,7 @@ export default function Tasks({ tasks, setTasks, currentUser, config, onWriteErr
       const due = t.dueDate ? ` | Due ${formatDue(t.dueDate)}` : '';
       return `${taskStatusIcon(t.status)} *${t.title || 'Untitled'}*\n   > ${t.assignedTo || 'Unassigned'}${due}`;
     }).join('\n\n');
-    return `📋 *Task Tracker*\n\n${lines || 'No tasks found.'}\n\n🔗 ${APP_URL}/#tasks`;
+    return `*Task Tracker*\n\n${lines || 'No tasks found.'}\n\nLink: ${APP_URL}/#tasks`;
   };
 
   const segBtn = (active) => ({
