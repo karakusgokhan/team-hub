@@ -119,17 +119,18 @@ export default function App() {
     setCalendarEvents(mapped);
   }, [config]);
 
-  // Keep URL hash in sync with the active tab using replaceState.
-  // replaceState silently rewrites the URL — no history entry, no hashchange
-  // event, no scroll-to-anchor — unlike window.location.hash assignment.
-  // Use the explicit pathname (/team-hub/) so the fragment is always anchored
-  // to the correct base path on GitHub Pages and avoids ambiguous resolution.
+  // Set the initial URL hash once on mount to reflect whichever tab was
+  // activated from the deep-link (or 'checkin' as default).
+  // This runs exactly once — subsequent tab changes update the hash
+  // synchronously inside the click handler below, bypassing React's effect
+  // cycle and avoiding the React 18 batching issue where a [activeTab] effect
+  // could be skipped when Airtable state updates land in the same commit.
   useEffect(() => {
     const target = window.location.pathname + '#' + activeTab;
-    console.log('[HH] replaceState effect | activeTab:', activeTab, '| pathname:', window.location.pathname, '| setting URL to:', target);
+    console.log('[HH] mount effect | setting initial hash to:', target);
     window.history.replaceState(null, '', target);
-    console.log('[HH] replaceState done | window.location.hash is now:', window.location.hash);
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — only runs on mount
 
   // Save config to localStorage when it changes
   useEffect(() => {
@@ -366,7 +367,7 @@ export default function App() {
         {/* Right: actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           {!userCheckedIn && (
-            <button onClick={() => setActiveTab('checkin')} style={{
+            <button onClick={() => { window.history.replaceState(null, '', window.location.pathname + '#checkin'); setActiveTab('checkin'); }} style={{
               background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', border: 'none',
               color: '#fff', padding: 'clamp(6px, 2vw, 8px) clamp(10px, 3vw, 16px)',
               borderRadius: 8, fontSize: 'clamp(11px, 2vw, 13px)',
@@ -380,7 +381,7 @@ export default function App() {
 
           {/* Open tasks badge */}
           {myOpenTasks > 0 && (
-            <button onClick={() => setActiveTab('tasks')} title={`${myOpenTasks} open tasks`} style={{
+            <button onClick={() => { window.history.replaceState(null, '', window.location.pathname + '#tasks'); setActiveTab('tasks'); }} title={`${myOpenTasks} open tasks`} style={{
               background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)',
               color: '#FCD34D', padding: 'clamp(6px, 2vw, 8px) clamp(8px, 2vw, 12px)',
               borderRadius: 8, fontSize: 'clamp(11px, 2vw, 12px)',
@@ -430,6 +431,12 @@ export default function App() {
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => {
             console.log('[HH] tab clicked | tab.id:', tab.id, '| tab.label:', tab.label, '| current activeTab:', activeTab);
+            // Call replaceState synchronously here — do NOT rely on a
+            // useEffect([activeTab]) for this. React 18 concurrent batching
+            // can skip that effect when Airtable state updates land in the
+            // same commit as the tab-state change (reproduces from #decisions).
+            window.history.replaceState(null, '', window.location.pathname + '#' + tab.id);
+            console.log('[HH] replaceState done immediately | hash is now:', window.location.hash);
             setActiveTab(tab.id);
           }} style={{
             padding: 'clamp(8px, 2vw, 10px) clamp(10px, 3vw, 18px)',
