@@ -119,8 +119,10 @@ export default function App() {
   // Keep URL hash in sync with the active tab using replaceState.
   // replaceState silently rewrites the URL — no history entry, no hashchange
   // event, no scroll-to-anchor — unlike window.location.hash assignment.
+  // Use the explicit pathname (/team-hub/) so the fragment is always anchored
+  // to the correct base path on GitHub Pages and avoids ambiguous resolution.
   useEffect(() => {
-    window.history.replaceState(null, '', '#' + activeTab);
+    window.history.replaceState(null, '', window.location.pathname + '#' + activeTab);
   }, [activeTab]);
 
   // Save config to localStorage when it changes
