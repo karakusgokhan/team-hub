@@ -26,10 +26,7 @@ const TABS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState(() => {
-    const hash = window.location.hash.replace('#', '');
-    return TABS.find(t => t.id === hash) ? hash : 'checkin';
-  });
+  const [activeTab, setActiveTab] = useState('checkin');
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('teamhub_config');
@@ -113,11 +110,6 @@ export default function App() {
     // the week view only processes Mon–Fri and the month view checks date strings.
     setCalendarEvents(mapped);
   }, [config]);
-
-  // Sync URL hash with active tab so shared links deep-link correctly
-  useEffect(() => {
-    window.location.hash = activeTab;
-  }, [activeTab]);
 
   // Save config to localStorage when it changes
   useEffect(() => {
