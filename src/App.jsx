@@ -29,8 +29,11 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     // Read the hash on page load to support deep links like /#calendar.
     // .slice(1) strips the leading '#' without mutating the URL.
-    const hash = window.location.hash.slice(1);
-    return TABS.find(t => t.id === hash) ? hash : 'checkin';
+    const rawHash = window.location.hash;
+    const hash = rawHash.slice(1);
+    const matched = TABS.find(t => t.id === hash);
+    console.log('[HH] init | raw hash:', JSON.stringify(rawHash), '| stripped:', JSON.stringify(hash), '| matched tab:', matched?.id ?? 'none → defaulting to checkin');
+    return matched ? hash : 'checkin';
   });
   const [config, setConfig] = useState(() => {
     try {
@@ -122,7 +125,10 @@ export default function App() {
   // Use the explicit pathname (/team-hub/) so the fragment is always anchored
   // to the correct base path on GitHub Pages and avoids ambiguous resolution.
   useEffect(() => {
-    window.history.replaceState(null, '', window.location.pathname + '#' + activeTab);
+    const target = window.location.pathname + '#' + activeTab;
+    console.log('[HH] replaceState effect | activeTab:', activeTab, '| pathname:', window.location.pathname, '| setting URL to:', target);
+    window.history.replaceState(null, '', target);
+    console.log('[HH] replaceState done | window.location.hash is now:', window.location.hash);
   }, [activeTab]);
 
   // Save config to localStorage when it changes
@@ -422,7 +428,10 @@ export default function App() {
         scrollbarWidth: 'none', msOverflowStyle: 'none',
       }}>
         {TABS.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+          <button key={tab.id} onClick={() => {
+            console.log('[HH] tab clicked | tab.id:', tab.id, '| tab.label:', tab.label, '| current activeTab:', activeTab);
+            setActiveTab(tab.id);
+          }} style={{
             padding: 'clamp(8px, 2vw, 10px) clamp(10px, 3vw, 18px)',
             background: activeTab === tab.id ? 'rgba(99,102,241,0.15)' : 'transparent',
             border: 'none',
