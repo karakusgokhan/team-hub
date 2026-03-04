@@ -26,7 +26,12 @@ const TABS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('checkin');
+  const [activeTab, setActiveTab] = useState(() => {
+    // Read the hash on page load to support deep links like /#calendar.
+    // .slice(1) strips the leading '#' without mutating the URL.
+    const hash = window.location.hash.slice(1);
+    return TABS.find(t => t.id === hash) ? hash : 'checkin';
+  });
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('teamhub_config');
@@ -110,6 +115,13 @@ export default function App() {
     // the week view only processes Mon–Fri and the month view checks date strings.
     setCalendarEvents(mapped);
   }, [config]);
+
+  // Keep URL hash in sync with the active tab using replaceState.
+  // replaceState silently rewrites the URL — no history entry, no hashchange
+  // event, no scroll-to-anchor — unlike window.location.hash assignment.
+  useEffect(() => {
+    window.history.replaceState(null, '', '#' + activeTab);
+  }, [activeTab]);
 
   // Save config to localStorage when it changes
   useEffect(() => {
